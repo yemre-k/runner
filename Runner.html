@@ -8,7 +8,7 @@
 <title>Shadow Analyst: Requirement Runner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Audiowide&family=Rajdhani:wght@500;600;700&family=VT323&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Audiowide&family=Rajdhani:wght@500;600;700&family=Chakra+Petch:wght@600;700&family=VT323&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg: #0e1115;
@@ -1053,7 +1053,7 @@ h2 {
 
   <section class="overlay show" id="title-screen">
     <div class="modal title-modal">
-      <img class="title-hero" src="_f56aba2a-7200-485c-99ef-9f9baf2b93c5.jpg" alt="">
+      <img class="title-hero" src="_f56aba2a-7200-485c-99ef-9f9baf2b93c5.jpg" alt="" onerror="this.style.display='none'">
       <div class="eyebrow">Sistem Analizi Arcade</div>
       <h1 class="gradient-title">Requirement Runner</h1>
       <p class="lead">
@@ -1085,8 +1085,8 @@ h2 {
 
   <section class="overlay" id="pause-screen">
     <div class="modal small">
-      <div class="eyebrow">Koşu Duraklatıldı</div>
-      <h2>Nefeslen</h2>
+      <div class="eyebrow" id="pause-eyebrow">Koşu Duraklatıldı</div>
+      <h2 id="pause-title">Nefeslen</h2>
       <p class="lead" id="pause-copy"></p>
       <div class="actions">
         <button class="btn primary" id="resume-btn" type="button">Devam Et</button>
@@ -1523,7 +1523,6 @@ const ROAD = {
 };
 
 const ASSETS = {
-  player: null,
   background: null,
   cityArt: null,
   ready: false,
@@ -1566,6 +1565,10 @@ function removeBackground(img) {
 function loadAssets() {
   loadImage('_616f7bc6-5bb2-4adb-b416-5f4fee3ba824.jpg')
     .then(img => { ASSETS.background = img; })
+    .catch(() => {});
+
+  loadImage('_f56aba2a-7200-485c-99ef-9f9baf2b93c5.jpg')
+    .then(img => { ASSETS.cityArt = removeBackground(img); })
     .catch(() => {});
 }
 
@@ -1665,6 +1668,8 @@ function sfx(type) {
     tone(660, 0.04, 'sine', 0.3);
   } else if (type === 'jump') {
     slide(330, 550, 0.1, 'square', 0.25);
+  } else if (type === 'slide') {
+    slide(620, 180, 0.22, 'sawtooth', 0.22);
   }
 }
 
@@ -1776,6 +1781,8 @@ const GAME_STATE = {
   laneVisual: 0,
   jump: 0,
   jumpVelocity: 0,
+  jumpsLeft: 2,
+  jumpHeld: false,
   slideTime: 0,
   invulnerable: 0,
   cameraShake: 0,
@@ -1874,6 +1881,8 @@ function resetRun() {
     laneVisual: 0,
     jump: 0,
     jumpVelocity: 0,
+    jumpsLeft: 2,
+    jumpHeld: false,
     slideTime: 0,
     invulnerable: 0,
     cameraShake: 0,
@@ -2164,6 +2173,7 @@ function applyConceptFeedback(correct, question) {
     GAME_STATE.score += 750 + streakBonus;
     GAME_STATE.xp += 45 + GAME_STATE.chapter * 10;
     GAME_STATE.coins += 8 + GAME_STATE.chapter * 2;
+    sfx('correct');
     showToast('Doğru: ' + question.explain, 'ok');
   } else {
     GAME_STATE.streak = 0;
@@ -2173,6 +2183,7 @@ function applyConceptFeedback(correct, question) {
       explain: question.explain,
       focus: question.focus,
     });
+    sfx('wrong');
     showToast('Kaçtı: ' + question.explain, 'no');
     handleCrash('wrong-gate');
   }
@@ -2220,6 +2231,7 @@ function missWord(obj) {
   if (!GAME_STATE.sentence || obj.taken || obj.missed || !obj.correct) return;
   obj.missed = true;
   clearWordSet(obj.setId);
+  sfx('miss');
   GAME_STATE.streak = 0;
   GAME_STATE.score = Math.max(0, GAME_STATE.score - 140);
   if (GAME_STATE.coins >= MISSED_WORD_PENALTY) {
@@ -2241,6 +2253,7 @@ function completeSentence() {
   GAME_STATE.xp += 80;
   GAME_STATE.coins += 15;
   updateSentencePanel();
+  sfx('sentence');
   showToast('Cümle tamamlandı: ' + completed.completion, 'ok');
   GAME_STATE.gateUnlocked = true;
   GAME_STATE.nextGate = .75;
@@ -2253,8 +2266,16 @@ function completeSentence() {
 function completeChapter() {
   if (GAME_STATE.mode !== 'playing') return;
   const ch = currentChapter();
+  // Celebration: confetti burst from player + ascending arpeggio
+  const cx = GAME_STATE.width * .5 + GAME_STATE.laneVisual * 80;
+  const cy = GAME_STATE.height * .68;
+  spawnParticles(cx, cy, ch.color, 22, 90);
+  spawnParticles(cx, cy, '#00f5ff', 18, 80);
+  spawnParticles(cx, cy, '#ffe066', 14, 70);
+  sfx('sentence');
+  setTimeout(() => sfx('correct'), 240);
   if (GAME_STATE.chapter >= RUNNER_CHAPTERS.length - 1) {
-    finishRun();
+    setTimeout(finishRun, 600);
     return;
   }
   setMode('chapter');
@@ -2384,6 +2405,7 @@ function handleCrash(reason) {
   if (GAME_STATE.invulnerable > 0 && reason !== 'wrong-gate') return;
   GAME_STATE.cameraShake = 14;
   GAME_STATE.invulnerable = 1250;
+  if (reason !== 'wrong-gate') sfx('crash');
   if (GAME_STATE.shields > 0) {
     GAME_STATE.shields -= 1;
     showToast('Kalkan hatayı emdi.', 'info');
@@ -2402,6 +2424,8 @@ function handleCrash(reason) {
 
 function gameOver(reason) {
   setMode('pause');
+  document.getElementById('pause-eyebrow').textContent = 'Koşu Sona Erdi';
+  document.getElementById('pause-title').textContent = 'Oyun Bitti';
   document.getElementById('pause-copy').textContent =
     (reason || 'Koşu sona erdi.') + ' Doğru kapı sayısı: ' + GAME_STATE.correctTotal + '. Yeniden deneyebilirsin.';
   document.getElementById('resume-btn').style.display = 'none';
@@ -2412,6 +2436,8 @@ function togglePause() {
   if (GAME_STATE.mode === 'playing') {
     setMode('pause');
     GAME_STATE.pausedFrom = 'playing';
+    document.getElementById('pause-eyebrow').textContent = 'Koşu Duraklatıldı';
+    document.getElementById('pause-title').textContent = 'Nefeslen';
     document.getElementById('resume-btn').style.display = '';
     document.getElementById('pause-copy').textContent =
       currentChapter().title + ': ' + currentChapter().focus;
@@ -2424,19 +2450,55 @@ function togglePause() {
 
 function moveLane(dir) {
   if (GAME_STATE.mode !== 'playing') return;
-  GAME_STATE.lane = Math.max(-1, Math.min(1, GAME_STATE.lane + dir));
+  const next = Math.max(-1, Math.min(1, GAME_STATE.lane + dir));
+  if (next !== GAME_STATE.lane) {
+    GAME_STATE.lane = next;
+    sfx('lane');
+  }
 }
 
 function jump() {
   if (GAME_STATE.mode !== 'playing') return;
+  // Ground jump
   if (GAME_STATE.jump <= 2) {
     GAME_STATE.jumpVelocity = 720;
+    GAME_STATE.jumpsLeft = 1; // one air-jump remaining
+    GAME_STATE.jumpHeld = true;
+    sfx('jump');
+    return;
+  }
+  // Air double-jump (synthwave dash)
+  if (GAME_STATE.jumpsLeft > 0) {
+    GAME_STATE.jumpVelocity = 620;
+    GAME_STATE.jumpsLeft = 0;
+    GAME_STATE.jumpHeld = true;
+    spawnParticles(
+      GAME_STATE.width * .5 + GAME_STATE.laneVisual * 80,
+      GAME_STATE.height * .68 - GAME_STATE.jump,
+      currentChapter().color, 14, 60,
+    );
+    sfx('jump');
+  }
+}
+
+function releaseJump() {
+  GAME_STATE.jumpHeld = false;
+  // Variable-height jump: cut upward velocity if released early
+  if (GAME_STATE.jumpVelocity > 220) {
+    GAME_STATE.jumpVelocity *= 0.45;
   }
 }
 
 function slide() {
   if (GAME_STATE.mode !== 'playing') return;
+  // Mid-air slide → snap back to ground (synthwave dive). Prevents
+  // floating-slide visual bug and gives a useful "fast fall" mechanic.
+  if (GAME_STATE.jump > 2) {
+    GAME_STATE.jumpVelocity = -1400;
+    GAME_STATE.jumpHeld = false;
+  }
   GAME_STATE.slideTime = 520;
+  sfx('slide');
 }
 
 function showToast(text, type) {
@@ -2473,10 +2535,14 @@ function update(dt, now) {
   GAME_STATE.laneVisual += (GAME_STATE.lane - GAME_STATE.laneVisual) * Math.min(1, seconds * 12);
   GAME_STATE.jump = Math.max(0, GAME_STATE.jump + GAME_STATE.jumpVelocity * seconds);
   if (GAME_STATE.jump > 0 || GAME_STATE.jumpVelocity > 0) {
-    GAME_STATE.jumpVelocity -= 1800 * seconds;
+    // Slightly lower gravity while jump is held → softer arc / variable height
+    const gravity = GAME_STATE.jumpHeld && GAME_STATE.jumpVelocity > 0 ? 1500 : 1800;
+    GAME_STATE.jumpVelocity -= gravity * seconds;
     if (GAME_STATE.jump <= 0 && GAME_STATE.jumpVelocity < 0) {
       GAME_STATE.jump = 0;
       GAME_STATE.jumpVelocity = 0;
+      GAME_STATE.jumpsLeft = 2; // refresh both jumps on landing
+      GAME_STATE.jumpHeld = false;
     }
   }
   GAME_STATE.slideTime = Math.max(0, GAME_STATE.slideTime - dt);
@@ -2562,6 +2628,7 @@ function checkObjectCollision(obj) {
     GAME_STATE.score += 35;
     const cp = perspective(obj.z);
     spawnParticles(laneToX(obj.lane, obj.z), cp.y, '#ffc85a', 6, 40);
+    sfx('coin');
     updateHUD();
     return;
   }
@@ -2569,6 +2636,7 @@ function checkObjectCollision(obj) {
     obj.taken = true;
     const pp = perspective(obj.z);
     spawnParticles(laneToX(obj.lane, obj.z), pp.y, POWERUPS[obj.powerId].color, 12, 60);
+    sfx('power');
     activatePowerup(obj.powerId);
     return;
   }
@@ -2576,6 +2644,7 @@ function checkObjectCollision(obj) {
     if (GAME_STATE.jump > 110) return;
     const wp = perspective(obj.z);
     spawnParticles(laneToX(obj.lane, obj.z), wp.y, '#d69b3d', 10, 50);
+    sfx('word');
     resolveWordPickup(obj);
     return;
   }
@@ -2677,6 +2746,30 @@ function drawBackground(W, H, ch) {
     ctx.fillRect(0, horizon - 30, W, 60);
   }
 
+  // Cyberpunk city silhouette parallax (sits on the horizon)
+  if (ASSETS.cityArt) {
+    const horizon = H * ROAD.horizon;
+    const img = ASSETS.cityArt;
+    const cityH = horizon * .82;
+    const cityW = cityH * (img.width / img.height);
+    const drift = (GAME_STATE.distance * .00018) % cityW;
+    const lanePan = -GAME_STATE.laneVisual * 14;
+    const baseX = (W - cityW) / 2 + lanePan - drift * .2;
+    const dy = horizon - cityH * .96;
+    ctx.save();
+    ctx.globalAlpha = .55;
+    // Shadow pass for neon bleed
+    ctx.shadowColor = ch.color;
+    ctx.shadowBlur = 24;
+    ctx.drawImage(img, baseX, dy, cityW, cityH);
+    ctx.shadowBlur = 0;
+    // Tint pass: darken to silhouette
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.fillStyle = hexToRgba(ch.skyA, .55);
+    ctx.fillRect(baseX, dy, cityW, cityH);
+    ctx.restore();
+  }
+
   // Glow at horizon
   const horizon = H * ROAD.horizon;
   const horizonGlow = ctx.createRadialGradient(W * .5, horizon, 0, W * .5, horizon, W * .6);
@@ -2687,6 +2780,7 @@ function drawBackground(W, H, ch) {
   ctx.fillRect(0, horizon - W * .15, W, W * .3);
 }
 
+
 function drawRoad(W, H, ch) {
   const horizon = H * ROAD.horizon;
   const roadTop = W * ROAD.topHalf;
@@ -2695,14 +2789,17 @@ function drawRoad(W, H, ch) {
 
   const ground = ctx.createLinearGradient(0, horizon, 0, H);
   ground.addColorStop(0, hexToRgba(ch.color, .34));
-  ground.addColorStop(1, '#414942');
+  ground.addColorStop(1, '#0a0d18');
   ctx.fillStyle = ground;
   ctx.fillRect(0, horizon, W, H - horizon);
 
+  // Synthwave neon grid on the side ground (under sidewalks too)
+  drawSynthwaveGrid(W, H, horizon, ch);
+
   const sidewalk = ctx.createLinearGradient(0, horizon, 0, H);
-  sidewalk.addColorStop(0, '#9aa097');
-  sidewalk.addColorStop(.48, '#747b72');
-  sidewalk.addColorStop(1, '#555d56');
+  sidewalk.addColorStop(0, '#0c1626');
+  sidewalk.addColorStop(.48, '#0a1322');
+  sidewalk.addColorStop(1, '#070b18');
   ctx.fillStyle = sidewalk;
   ctx.beginPath();
   ctx.moveTo(0, horizon);
@@ -2719,19 +2816,24 @@ function drawRoad(W, H, ch) {
   ctx.closePath();
   ctx.fill();
 
-  ctx.strokeStyle = 'rgba(222,216,196,.62)';
-  ctx.lineWidth = 5;
+  // Outer neon kerb (magenta/pink) — synthwave sidewalk edge
+  ctx.save();
+  ctx.shadowColor = CYBER_COLORS.pink;
+  ctx.shadowBlur = 14;
+  ctx.strokeStyle = hexToRgba(CYBER_COLORS.pink, .85);
+  ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(cx - roadTop - 4, horizon);
   ctx.lineTo(cx - roadBottom - 18, H);
   ctx.moveTo(cx + roadTop + 4, horizon);
   ctx.lineTo(cx + roadBottom + 18, H);
   ctx.stroke();
+  ctx.restore();
 
   const road = ctx.createLinearGradient(0, horizon, 0, H);
-  road.addColorStop(0, '#5f6870');
-  road.addColorStop(.35, ch.road || '#3d444b');
-  road.addColorStop(1, '#242a30');
+  road.addColorStop(0, '#0a1024');
+  road.addColorStop(.35, ch.road || '#0a0e22');
+  road.addColorStop(1, '#05060f');
   ctx.fillStyle = road;
   ctx.beginPath();
   ctx.moveTo(cx - roadTop, horizon);
@@ -2764,15 +2866,19 @@ function drawRoad(W, H, ch) {
   }
   ctx.restore();
 
-  // Road edge lines.
-  ctx.strokeStyle = 'rgba(245,245,230,.72)';
-  ctx.lineWidth = 3;
+  // Road edge lines — neon cyan, glowing
+  ctx.save();
+  ctx.shadowColor = CYBER_COLORS.cyan;
+  ctx.shadowBlur = 10;
+  ctx.strokeStyle = hexToRgba(CYBER_COLORS.cyan, .9);
+  ctx.lineWidth = 2.4;
   ctx.beginPath();
   ctx.moveTo(cx - roadTop, horizon);
   ctx.lineTo(cx - roadBottom, H);
   ctx.moveTo(cx + roadTop, horizon);
   ctx.lineTo(cx + roadBottom, H);
   ctx.stroke();
+  ctx.restore();
 
   drawLaneMarkers(W, H);
   drawStreetLamps(W, H);
@@ -2798,16 +2904,52 @@ function drawLaneMarkers(W, H) {
       if (t1 >= .99 || t2 <= .04) continue;
       const a = roadPoint(frac, t1);
       const b = roadPoint(frac, t2);
-      ctx.strokeStyle = 'rgba(246,246,232,.74)';
+      ctx.shadowColor = CYBER_COLORS.cyan;
+      ctx.shadowBlur = 8 + t2 * 6;
+      ctx.strokeStyle = hexToRgba(CYBER_COLORS.cyan, .85);
       ctx.lineWidth = Math.max(2, 1 + t2 * 5);
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(b.x, b.y);
       ctx.stroke();
+      ctx.shadowBlur = 0;
     }
   }
   ctx.lineCap = 'butt';
+}
+
+function drawSynthwaveGrid(W, H, horizon, ch) {
+  // Neon grid receding to horizon — classic synthwave terrain on the side ground
+  const cx = W * .5;
+  const groundH = H - horizon;
+  ctx.save();
+  ctx.shadowColor = CYBER_COLORS.cyan;
+  ctx.shadowBlur = 6;
+
+  // Horizontal scan lines
+  const scroll = (GAME_STATE.distance * .00038) % .08;
+  ctx.strokeStyle = hexToRgba(CYBER_COLORS.cyan, .22);
+  ctx.lineWidth = 1;
+  for (let t = .02 + scroll; t < 1; t += .08) {
+    const y = horizon + Math.pow(t, 1.42) * (groundH - 42);
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+
+  // Radiating verticals from horizon vanishing point
+  ctx.strokeStyle = hexToRgba(CYBER_COLORS.pink, .18);
+  for (let i = -10; i <= 10; i++) {
+    if (i === 0) continue;
+    const fracBottom = i * .12;
+    ctx.beginPath();
+    ctx.moveTo(cx, horizon);
+    ctx.lineTo(cx + W * fracBottom, H);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function drawStreetLamps(W, H) {
@@ -2830,29 +2972,61 @@ function drawStreetLamp(side, t) {
   const lampX = topX - side * (18 + 16 * t) * scale;
   const lampY = topY + 8 * scale;
 
-  ctx.strokeStyle = 'rgba(42,48,52,.62)';
-  ctx.lineWidth = Math.max(2, 3.2 * scale);
+  // Pole (dark with subtle cyan rim)
+  ctx.strokeStyle = '#0a0e1a';
+  ctx.lineWidth = Math.max(2, 3.4 * scale);
   ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(base.x, base.y);
   ctx.lineTo(topX, topY);
   ctx.lineTo(lampX, lampY);
   ctx.stroke();
+  // Cyan pole rim
+  ctx.strokeStyle = hexToRgba(CYBER_COLORS.cyan, .55);
+  ctx.lineWidth = Math.max(1, 1.2 * scale);
+  ctx.shadowColor = CYBER_COLORS.cyan;
+  ctx.shadowBlur = 5 * scale;
+  ctx.beginPath();
+  ctx.moveTo(base.x, base.y);
+  ctx.lineTo(topX, topY);
+  ctx.lineTo(lampX, lampY);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
   ctx.lineCap = 'butt';
 
-  ctx.fillStyle = 'rgba(38,43,47,.9)';
+  // Base footing
+  ctx.fillStyle = 'rgba(8,12,22,.92)';
   ctx.beginPath();
   ctx.ellipse(base.x, base.y + 2 * scale, 8 * scale, 3 * scale, 0, 0, Math.PI * 2);
   ctx.fill();
 
+  // Neon lamp head — alternate cyan/magenta down the road for synthwave variety
+  const lampColor = ((Math.round(t * 100) + (side > 0 ? 0 : 1)) & 1)
+    ? CYBER_COLORS.pink
+    : CYBER_COLORS.cyan;
   ctx.save();
-  ctx.shadowColor = 'rgba(255,238,192,.65)';
-  ctx.shadowBlur = 8 * scale;
-  ctx.fillStyle = '#ead9a9';
+  ctx.shadowColor = lampColor;
+  ctx.shadowBlur = 18 * scale;
+  ctx.fillStyle = lampColor;
   ctx.beginPath();
   ctx.ellipse(lampX, lampY, 6 * scale, 4 * scale, 0, 0, Math.PI * 2);
   ctx.fill();
+  // Bright core
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
+  ctx.beginPath();
+  ctx.ellipse(lampX, lampY, 3 * scale, 2 * scale, 0, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
+
+  // Light spill cone onto the ground (subtle)
+  const spillGrad = ctx.createRadialGradient(lampX, lampY + 4 * scale, 2, lampX, lampY + 4 * scale, 36 * scale);
+  spillGrad.addColorStop(0, hexToRgba(lampColor, .25));
+  spillGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = spillGrad;
+  ctx.beginPath();
+  ctx.ellipse(lampX, lampY + 14 * scale, 28 * scale, 10 * scale, 0, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawObjects() {
@@ -2920,22 +3094,32 @@ function drawWord(obj) {
   const y = p.y - 28 * p.scale + Math.sin(obj.pulse) * 3;
   ctx.save();
   ctx.translate(x, y);
-  ctx.shadowColor = '#d69b3d';
-  ctx.shadowBlur = (reveal ? 16 : 10) * p.scale;
-  ctx.fillStyle = reveal ? 'rgba(255, 238, 181, .98)' : 'rgba(245, 209, 124, .95)';
-  ctx.strokeStyle = reveal ? '#b47a22' : '#d69b3d';
+  const accent = currentChapter().color;
+  ctx.shadowColor = accent;
+  ctx.shadowBlur = (reveal ? 18 : 12) * p.scale;
+  // Dark cyber panel
+  const wordGrad = ctx.createLinearGradient(0, -h / 2, 0, h / 2);
+  wordGrad.addColorStop(0, 'rgba(10,18,32,.94)');
+  wordGrad.addColorStop(1, 'rgba(18,28,46,.94)');
+  ctx.fillStyle = wordGrad;
+  ctx.strokeStyle = reveal ? accent : 'rgba(117,211,230,.85)';
   ctx.lineWidth = Math.max(1, 2 * p.scale);
   roundRect(-w / 2, -h / 2, w, h, 7 * p.scale);
   ctx.fill();
   ctx.stroke();
-  ctx.fillStyle = 'rgba(180,122,34,.16)';
-  roundRect(-w / 2 + 5 * p.scale, -h / 2 + 5 * p.scale, w - 10 * p.scale, h - 10 * p.scale, 5 * p.scale);
-  ctx.fill();
-  ctx.fillStyle = '#071017';
-  ctx.font = '900 ' + Math.max(12, 15 * p.scale) + 'px Segoe UI, sans-serif';
+  // Inner highlight
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(117,211,230,.18)';
+  ctx.lineWidth = Math.max(1, 1 * p.scale);
+  roundRect(-w / 2 + 4 * p.scale, -h / 2 + 4 * p.scale, w - 8 * p.scale, h - 8 * p.scale, 5 * p.scale);
+  ctx.stroke();
+  ctx.fillStyle = reveal ? '#f4fcff' : '#75e8ff';
+  ctx.shadowColor = accent;
+  ctx.shadowBlur = 4 * p.scale;
+  ctx.font = '700 ' + Math.max(13, 16 * p.scale) + 'px "Chakra Petch", "Rajdhani", sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  wrapCanvasText(label, 0, 0, w * .86, Math.max(11, 14 * p.scale), 2);
+  wrapCanvasText(label, 0, 0, w * .86, Math.max(13, 16 * p.scale), 2);
   ctx.restore();
 }
 
@@ -2989,8 +3173,8 @@ function drawPower(obj) {
   ctx.shadowBlur = 0;
 
   // Label
-  ctx.fillStyle = '#1f2b34';
-  ctx.font = '900 ' + Math.max(10, 11 * p.scale) + 'px Segoe UI, sans-serif';
+  ctx.fillStyle = '#0a141c';
+  ctx.font = '700 ' + Math.max(11, 12 * p.scale) + 'px "Chakra Petch", "Rajdhani", sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(power.label.slice(0, 2).toUpperCase(), 0, 1);
@@ -3191,9 +3375,9 @@ function drawGate() {
   for (let i = 0; i < 3; i++) {
     const lane = i - 1;
     const x = laneToX(lane, gate.z);
-    const w = Math.min(180, 116 * p.scale);
-    const h = Math.min(92, 60 * p.scale);
-    const y = p.y - 46 * p.scale;
+    const w = Math.min(220, 140 * p.scale);
+    const h = Math.min(116, 78 * p.scale);
+    const y = p.y - 56 * p.scale;
 
     ctx.save();
     ctx.translate(x, y);
@@ -3240,12 +3424,21 @@ function drawGate() {
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // Text — uniform
-    ctx.fillStyle = '#ecf6ff';
-    ctx.font = '800 ' + Math.max(13, 16 * p.scale) + 'px Rajdhani, sans-serif';
+    // Text — uniform, high contrast
+    const fontSize = Math.max(15, 19 * p.scale);
+    const lineHeight = Math.max(16, 20 * p.scale);
+    // Subtle dark plate behind text for legibility
+    ctx.fillStyle = 'rgba(2,6,14,.55)';
+    roundRect(-w * .46, -h * .34, w * .92, h * .68, 4 * p.scale);
+    ctx.fill();
+    ctx.shadowColor = 'rgba(0,245,255,.55)';
+    ctx.shadowBlur = 6 * p.scale;
+    ctx.fillStyle = '#f4fcff';
+    ctx.font = '700 ' + fontSize + 'px "Chakra Petch", "Rajdhani", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    wrapCanvasText(gate.options[i].label, 0, -2 * p.scale, w * .85, Math.max(13, 16 * p.scale), 2);
+    wrapCanvasText(gate.options[i].label, 0, 0, w * .86, lineHeight, 3);
+    ctx.shadowBlur = 0;
     ctx.restore();
   }
 }
@@ -3262,39 +3455,51 @@ function drawPlayer() {
   if (flicker) return;
 
   const accent = currentChapter().color;
-  const bob = sliding ? 0 : Math.sin(GAME_STATE.elapsed * 14) * 3;
+  const stride = Math.sin(GAME_STATE.elapsed * 16);
+  const bob = sliding ? 0 : Math.abs(stride) * 4 - 2;
 
   ctx.save();
   ctx.translate(x, baseY - jumpY + bob);
 
-  // Ground shadow
+  // Layered neon ground shadow
   ctx.fillStyle = 'rgba(0,0,0,.45)';
   ctx.beginPath();
   ctx.ellipse(0, sliding ? 14 : 38 + jumpY * .42, sliding ? 56 : 32, sliding ? 7 : 9, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Neon ground glow
-  ctx.fillStyle = hexToRgba(accent, .25);
+  ctx.fillStyle = hexToRgba(accent, .28);
   ctx.shadowColor = accent;
-  ctx.shadowBlur = 18;
+  ctx.shadowBlur = 22;
   ctx.beginPath();
-  ctx.ellipse(0, sliding ? 14 : 36 + jumpY * .34, sliding ? 64 : 44, 6, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, sliding ? 14 : 36 + jumpY * .34, sliding ? 70 : 50, 7, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
 
-  if (ASSETS.player) {
-    drawPlayerSprite(sliding, jumpY);
-  } else {
-    // Fallback while sprite loads
-    const run = Math.sin(GAME_STATE.elapsed * 13);
-    const run2 = Math.sin(GAME_STATE.elapsed * 13 + Math.PI);
-    const lean = sliding ? .22 : .08 + run * .025;
-    const scale = Math.max(.9, Math.min(1.18, H / 700));
+  // Speed-streak motion lines behind feet (synthwave runner trail)
+  if (!sliding && GAME_STATE.streak > 2) {
     ctx.save();
-    ctx.scale(scale, scale);
-    if (sliding) drawSlidingRunner();
-    else drawRunningRunner(run, run2, lean);
+    const trailIntensity = Math.min(1, GAME_STATE.streak / 8);
+    for (let i = 0; i < 3; i++) {
+      const off = i * 14 + (GAME_STATE.elapsed * 380) % 14;
+      ctx.strokeStyle = hexToRgba(i === 0 ? '#ff2e9a' : '#00f5ff', .55 * trailIntensity);
+      ctx.lineWidth = 2;
+      ctx.shadowColor = i === 0 ? '#ff2e9a' : '#00f5ff';
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.moveTo(-22 - off, 22 - i * 6);
+      ctx.lineTo(-58 - off, 22 - i * 6);
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
     ctx.restore();
+  }
+
+  if (sliding) {
+    drawCyberSlide(stride);
+  } else if (jumpY > 35) {
+    drawCyberJump(jumpY, stride);
+  } else {
+    drawCyberRun(stride);
   }
 
   // Shield bubble
@@ -3315,274 +3520,505 @@ function drawPlayer() {
   ctx.restore();
 }
 
-function drawPlayerSprite(sliding, jumpY) {
-  const img = ASSETS.player;
+// ─────────────────────────────────────────────────────────────────────────────
+// CYBERPUNK RUNNER (procedural, back-view, palette inspired by synthwave PNG)
+// Palette ref: navy bodysuit (#0d1421→#2a3450), cyan piping (#00f5ff),
+// magenta accents (#ff2e9a), chapter accent on chest/knees, glowing soles.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CYBER_COLORS = {
+  suitDark: '#0d1421',
+  suitMid: '#1a2236',
+  suitLight: '#2a3450',
+  cyan: '#00f5ff',
+  visor: '#75e8ff',
+  pink: '#ff2e9a',
+  inkLine: '#06090f',
+};
+
+function getPlayerScale() {
   const H = GAME_STATE.height;
-  const baseSize = Math.max(140, Math.min(200, H * .28));
-  const aspect = img.width / img.height;
+  return Math.max(.95, Math.min(1.35, H / 720));
+}
 
-  let drawW, drawH;
-  if (sliding) {
-    drawH = baseSize * .6;
-    drawW = drawH * aspect * 1.3;
-  } else {
-    drawH = baseSize;
-    drawW = drawH * aspect;
-  }
-
-  // Slight tilt when jumping
-  const tilt = jumpY > 30 ? -.12 : 0;
-  const stretch = jumpY > 30 ? 1.03 : 1;
-  // Subtle running bob handled by parent translate; here add side run sway
-  const sway = sliding ? 0 : Math.sin(GAME_STATE.elapsed * 14) * .04;
+function drawCyberRun(stride) {
+  const accent = currentChapter().color;
+  const scale = getPlayerScale();
+  const bob = Math.abs(stride) * 2.2;
+  const lean = stride * .025;
 
   ctx.save();
-  ctx.rotate(tilt + sway);
-  ctx.scale(stretch, stretch);
+  ctx.scale(scale, scale);
+  ctx.rotate(lean);
 
-  const yOffset = sliding ? -drawH * .55 : -drawH + 26;
+  // Leg phases — back view: lifted leg = stride > 0 means LEFT leg lifted forward
+  const lLift = Math.max(0, stride);
+  const rLift = Math.max(0, -stride);
 
-  // Layered neon glow behind sprite
-  const accent = currentChapter().color;
-  ctx.shadowColor = accent;
-  ctx.shadowBlur = 22;
-  ctx.globalAlpha = .25;
-  ctx.drawImage(img, -drawW / 2, yOffset, drawW, drawH);
-  ctx.shadowColor = '#00f5ff';
-  ctx.shadowBlur = 14;
-  ctx.globalAlpha = .25;
-  ctx.drawImage(img, -drawW / 2, yOffset, drawW, drawH);
-  ctx.shadowBlur = 0;
-  ctx.globalAlpha = 1;
+  // Hip anchor positions
+  const hipY = -56 + bob;
+  const shoulderY = -106 + bob;
 
-  // Main sprite
-  ctx.drawImage(img, -drawW / 2, yOffset, drawW, drawH);
+  // ── Back leg first, then front leg (z-order) ──
+  // Determine which is "back" based on stride; the lifted one renders on top.
+  const drawLeftLeg = () => {
+    const liftAmt = lLift;
+    const kx = -10 + stride * 5;
+    const ky = -32 + bob - liftAmt * 14;
+    const fx = -11 + stride * 9;
+    const fy = -2 - liftAmt * 22;
+    drawCyberLeg(-9, hipY, kx, ky, fx, fy, accent);
+  };
+  const drawRightLeg = () => {
+    const liftAmt = rLift;
+    const kx = 10 - stride * 5;
+    const ky = -32 + bob - liftAmt * 14;
+    const fx = 11 - stride * 9;
+    const fy = -2 - liftAmt * 22;
+    drawCyberLeg(9, hipY, kx, ky, fx, fy, accent);
+  };
+
+  if (stride >= 0) { drawRightLeg(); drawLeftLeg(); }
+  else { drawLeftLeg(); drawRightLeg(); }
+
+  // ── Torso ──
+  drawCyberTorso(0, hipY, shoulderY, accent);
+
+  // ── Arms (swing opposite to same-side leg) ──
+  // When stride>0: left leg forward → left arm BACK, right arm FORWARD
+  const lArm = -stride;
+  const rArm = stride;
+  drawCyberArm(-1, -19, shoulderY, lArm, accent);
+  drawCyberArm( 1,  19, shoulderY, rArm, accent);
+
+  // ── Head/helmet with visor cap ──
+  drawCyberHead(0, -132 + bob * .8, accent);
+
+  // ── Power-up tint overlay ──
+  applyPowerTint(scale);
 
   ctx.restore();
 }
 
-function drawRunningRunner(run, run2, lean) {
-  ctx.save();
-  ctx.rotate(lean * .26);
-
-  const bob = Math.abs(run) * 2.8;
-  const shoulderY = -91 + bob;
-  const waistY = -45 + bob;
-  const hipY = -33 + bob;
-  const leftStep = run * 13;
-  const rightStep = run2 * 13;
+function drawCyberJump(jumpY, stride) {
   const accent = currentChapter().color;
+  const scale = getPlayerScale();
+  const tuck = Math.min(1, jumpY / 90);
+  const tilt = -.08 - tuck * .05;
 
-  ctx.fillStyle = '#d69b3d';
+  ctx.save();
+  ctx.scale(scale, scale);
+  ctx.rotate(tilt);
+
+  const hipY = -54 + tuck * 6;
+  const shoulderY = -104 + tuck * 4;
+
+  // Tucked legs — both knees up
+  // Right leg
+  drawCyberLeg(
+    9, hipY,
+    16 + tuck * 6, -36 + tuck * 8,
+    8 + tuck * 6, -14 - tuck * 14,
+    accent,
+  );
+  // Left leg
+  drawCyberLeg(
+    -9, hipY,
+    -16 - tuck * 6, -36 + tuck * 8,
+    -8 - tuck * 6, -14 - tuck * 14,
+    accent,
+  );
+
+  drawCyberTorso(0, hipY, shoulderY, accent);
+
+  // Arms reaching back during jump (small stride sway)
+  drawCyberArm(-1, -19, shoulderY, -.6 - stride * .2, accent);
+  drawCyberArm( 1,  19, shoulderY, -.6 + stride * .2, accent);
+
+  drawCyberHead(0, -130 + tuck * 4, accent);
+  applyPowerTint(scale);
+  ctx.restore();
+}
+
+function drawCyberSlide(stride) {
+  const accent = currentChapter().color;
+  const scale = getPlayerScale();
+  const t = GAME_STATE.elapsed;
+
+  ctx.save();
+  ctx.scale(scale, scale);
+
+  // Speed lines streaking back behind the slide
+  ctx.strokeStyle = hexToRgba(CYBER_COLORS.cyan, .55);
+  ctx.lineWidth = 1.2;
+  ctx.shadowColor = CYBER_COLORS.cyan;
+  ctx.shadowBlur = 6;
+  for (let i = 0; i < 4; i++) {
+    const ly = -10 - i * 6;
+    const lx = -40 - (i * 8 + (t * 60) % 12);
+    ctx.beginPath();
+    ctx.moveTo(lx, ly);
+    ctx.lineTo(lx - 22, ly);
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+
+  // Friction sparks under heel
+  for (let i = 0; i < 5; i++) {
+    const sx = -52 + Math.random() * 14;
+    const sy = -2 + Math.random() * 6;
+    ctx.fillStyle = hexToRgba(accent, .8);
+    ctx.shadowColor = accent;
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 1.2 + Math.random() * .8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // A couple spark streaks
+  ctx.strokeStyle = hexToRgba(accent, .7);
+  ctx.lineWidth = 1.3;
+  ctx.shadowColor = accent;
+  ctx.shadowBlur = 8;
+  for (let i = 0; i < 3; i++) {
+    const sx = -50 - Math.random() * 8;
+    const sy = -2 + Math.random() * 6;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(sx - 8 - Math.random() * 6, sy + (Math.random() * 4 - 2));
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+
+  // Forward-tilted low crouch slide pose. Origin is at player ground.
+  // Pivot the whole body forward by ~62° around hip area.
+  ctx.save();
+  ctx.translate(0, -8);          // lift slightly so back leg trails on ground
+  ctx.rotate(-Math.PI * .34);    // tilt forward (~-61°)
+
+  const hipY = -42;
+  const shoulderY = -92;
+
+  // Trailing/back leg (extended back along ground after rotation)
+  // In the rotated frame, "back" is +Y direction.
+  drawCyberLeg(
+    -8, hipY,
+    -4, hipY + 30,
+    2, hipY + 56,
+    accent,
+  );
+  // Front leg tucked toward chest
+  drawCyberLeg(
+    8, hipY,
+    14, hipY - 18,
+    20, hipY - 36,
+    accent,
+  );
+
+  drawCyberTorso(0, hipY, shoulderY, accent);
+
+  // Arms: lead arm reaching forward, trailing arm back near hip
+  drawCyberArm(-1, -19, shoulderY, .9, accent);   // forward (lead)
+  drawCyberArm( 1,  19, shoulderY, -.7, accent);  // back/trail
+
+  drawCyberHead(0, shoulderY - 24, accent, /*sliding*/ true);
+
+  ctx.restore();
+
+  // Ground neon streak (in unrotated space — under the slide)
+  const streakGrad = ctx.createLinearGradient(-70, 0, 30, 0);
+  streakGrad.addColorStop(0, 'rgba(0,245,255,0)');
+  streakGrad.addColorStop(.5, hexToRgba(accent, .5));
+  streakGrad.addColorStop(1, 'rgba(255,46,154,0)');
+  ctx.fillStyle = streakGrad;
+  ctx.shadowColor = accent;
+  ctx.shadowBlur = 12;
   ctx.beginPath();
-  ctx.moveTo(-13, shoulderY - 23);
-  ctx.bezierCurveTo(-42 - run * 7, shoulderY - 28, -62 - run * 8, shoulderY - 12, -76 - run * 5, shoulderY - 17);
-  ctx.bezierCurveTo(-56 - run * 5, shoulderY - 4, -34 - run * 3, shoulderY - 5, -11, shoulderY - 10);
-  ctx.closePath();
-  ctx.fill();
-
-  drawLimb(-10, hipY, -21 - leftStep * .36, -8, -20 - leftStep * .6, 28, '#182128', 9);
-  drawLimb(10, hipY, 21 - rightStep * .36, -8, 20 - rightStep * .6, 28, '#111920', 9);
-  drawShoe(-20 - leftStep * .6, 28, -1);
-  drawShoe(20 - rightStep * .6, 28, 1);
-
-  const coat = ctx.createLinearGradient(0, shoulderY - 12, 0, 34);
-  coat.addColorStop(0, '#26313a');
-  coat.addColorStop(.55, '#182127');
-  coat.addColorStop(1, '#0f1419');
-  ctx.fillStyle = coat;
-  ctx.strokeStyle = '#0b0f14';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(-28, shoulderY + 2);
-  ctx.quadraticCurveTo(0, shoulderY - 13, 28, shoulderY + 2);
-  ctx.lineTo(22, waistY + 8);
-  ctx.quadraticCurveTo(31, 5 + run * 2, 18, 31);
-  ctx.quadraticCurveTo(6, 12, 0, waistY + 16);
-  ctx.quadraticCurveTo(-6, 12, -18, 31);
-  ctx.quadraticCurveTo(-31, 5 - run * 2, -22, waistY + 8);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.strokeStyle = hexToRgba(accent, .9);
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(-24, shoulderY + 12);
-  ctx.lineTo(-7, waistY + 9);
-  ctx.moveTo(24, shoulderY + 12);
-  ctx.lineTo(7, waistY + 9);
-  ctx.stroke();
-
-  ctx.fillStyle = 'rgba(246,248,245,.08)';
-  roundRect(-18, shoulderY + 10, 36, 43, 9);
-  ctx.fill();
-  ctx.strokeStyle = hexToRgba(accent, .72);
-  ctx.stroke();
-  ctx.fillStyle = hexToRgba(accent, .30);
-  roundRect(-11, shoulderY + 18, 22, 23, 5);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(243,248,251,.48)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(-7, shoulderY + 25);
-  ctx.lineTo(7, shoulderY + 25);
-  ctx.moveTo(-6, shoulderY + 33);
-  ctx.lineTo(6, shoulderY + 33);
-  ctx.stroke();
-
-  drawLimb(-24, shoulderY + 9, -40 - run * 6, shoulderY + 30, -32 - run * 8, shoulderY + 54, '#1a242b', 7);
-  drawHand(-32 - run * 8, shoulderY + 54);
-  drawLimb(24, shoulderY + 9, 39 + run * 5, shoulderY + 26, 31 + run * 7, shoulderY + 49, '#1a242b', 7);
-  drawHoloTablet(34 + run * 7, shoulderY + 49, .18 + run * .05, .82);
-
-  ctx.fillStyle = '#151b22';
-  ctx.strokeStyle = '#0b0f14';
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.ellipse(0, shoulderY - 36, 19, 21, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#202a33';
-  ctx.beginPath();
-  ctx.ellipse(0, shoulderY - 45, 21, 13, 0, Math.PI, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#75d3e6';
-  ctx.shadowColor = '#75d3e6';
-  ctx.shadowBlur = 10;
-  roundRect(-12, shoulderY - 40, 24, 5, 3);
+  ctx.ellipse(-22, 6, 50, 3, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
 
-  ctx.strokeStyle = 'rgba(246,248,251,.42)';
+  applyPowerTint(scale);
+  ctx.restore();
+}
+
+// ── Body parts ──────────────────────────────────────────────────────────────
+
+function drawCyberLeg(hipX, hipY, kneeX, kneeY, footX, footY, accent) {
+  // Thigh
+  ctx.strokeStyle = CYBER_COLORS.suitMid;
+  ctx.lineWidth = 11;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(hipX, hipY);
+  ctx.lineTo(kneeX, kneeY);
+  ctx.stroke();
+
+  // Calf (slightly darker)
+  ctx.strokeStyle = CYBER_COLORS.suitDark;
+  ctx.lineWidth = 9;
+  ctx.beginPath();
+  ctx.moveTo(kneeX, kneeY);
+  ctx.lineTo(footX, footY);
+  ctx.stroke();
+
+  // Knee pad — chapter accent
+  ctx.fillStyle = accent;
+  ctx.shadowColor = accent;
+  ctx.shadowBlur = 7;
+  ctx.beginPath();
+  ctx.arc(kneeX, kneeY, 3.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Cyan calf stripe
+  ctx.strokeStyle = hexToRgba(CYBER_COLORS.cyan, .85);
+  ctx.lineWidth = 1.2;
+  ctx.shadowColor = CYBER_COLORS.cyan;
+  ctx.shadowBlur = 4;
+  ctx.beginPath();
+  const dx = footX - kneeX, dy = footY - kneeY;
+  const len = Math.hypot(dx, dy) || 1;
+  const px = -dy / len * 2.5, py = dx / len * 2.5;
+  ctx.moveTo(kneeX + px, kneeY + py);
+  ctx.lineTo(footX + px, footY + py);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Sneaker
+  ctx.fillStyle = '#080b12';
+  ctx.strokeStyle = CYBER_COLORS.inkLine;
   ctx.lineWidth = 1.2;
   ctx.beginPath();
-  ctx.moveTo(-10, shoulderY - 16);
-  ctx.lineTo(0, shoulderY - 4);
-  ctx.lineTo(10, shoulderY - 16);
-  ctx.stroke();
-
-  ctx.restore();
-}
-
-function drawSlidingRunner() {
-  ctx.save();
-  ctx.rotate(-.05);
-  const accent = currentChapter().color;
-
-  ctx.fillStyle = '#111920';
-  roundRect(-48, -14, 96, 17, 8);
-  ctx.fill();
-  ctx.strokeStyle = '#0b0f14';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-
-  const coat = ctx.createLinearGradient(-34, -74, 34, -20);
-  coat.addColorStop(0, '#28343d');
-  coat.addColorStop(.58, '#182127');
-  coat.addColorStop(1, '#0f1419');
-  ctx.fillStyle = coat;
-  roundRect(-36, -72, 72, 42, 12);
+  ctx.ellipse(footX, footY + 1, 8, 3.2, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
-  ctx.fillStyle = hexToRgba(accent, .22);
-  roundRect(-16, -63, 32, 23, 7);
-  ctx.fill();
-  ctx.strokeStyle = hexToRgba(accent, .7);
-  ctx.lineWidth = 1.4;
-  ctx.stroke();
 
-  ctx.fillStyle = '#d69b3d';
-  ctx.beginPath();
-  ctx.moveTo(-18, -66);
-  ctx.bezierCurveTo(-55, -72, -78, -58, -91, -61);
-  ctx.bezierCurveTo(-70, -45, -43, -47, -16, -53);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = '#151b22';
-  ctx.strokeStyle = '#0b0f14';
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.ellipse(4, -89, 18, 19, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#202a33';
-  ctx.beginPath();
-  ctx.ellipse(4, -99, 20, 11, 0, Math.PI, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#75d3e6';
-  ctx.shadowColor = '#75d3e6';
+  // Glow sole
+  ctx.fillStyle = accent;
+  ctx.shadowColor = accent;
   ctx.shadowBlur = 10;
-  roundRect(-8, -93, 24, 5, 3);
+  ctx.beginPath();
+  ctx.ellipse(footX, footY + 3.2, 7, 1.4, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
 
-  drawLimb(-25, -44, -54, -40, -70, -27, '#1a242b', 7);
-  drawHand(-70, -27);
-  drawLimb(25, -44, 54, -39, 70, -27, '#1a242b', 7);
-  drawHoloTablet(72, -27, .05, .74);
-  drawShoe(-45, 1, -1);
-  drawShoe(45, 1, 1);
-  ctx.restore();
-}
-
-function drawHoloTablet(x, y, angle, scale = 1) {
-  const accent = currentChapter().color;
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(angle);
-  ctx.scale(scale, scale);
-  ctx.fillStyle = 'rgba(12, 18, 23, .94)';
-  ctx.strokeStyle = hexToRgba(accent, .92);
-  ctx.lineWidth = 1.7;
-  roundRect(-12, -9, 24, 18, 4);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = hexToRgba(accent, .28);
-  roundRect(-7, -4, 14, 8, 3);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(243,248,251,.48)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(-6, 6);
-  ctx.lineTo(6, 6);
-  ctx.stroke();
-  ctx.restore();
-}
-
-function drawLimb(x1, y1, x2, y2, x3, y3, color, width) {
-  ctx.strokeStyle = color;
-  ctx.lineWidth = width;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.lineTo(x3, y3);
-  ctx.stroke();
   ctx.lineCap = 'butt';
 }
 
-function drawShoe(x, y, dir) {
-  ctx.fillStyle = '#0b0f14';
+function drawCyberArm(side, shoulderX, shoulderY, swing, accent) {
+  // swing in [-1, 1]: positive = arm forward (away from camera), negative = back/up
+  const elbowX = shoulderX + side * 5 + swing * 4;
+  const elbowY = shoulderY + 22 - Math.max(0, -swing) * 8;
+  const handX = shoulderX + side * 9 + swing * 12;
+  const handY = shoulderY + 42 - Math.max(0, swing) * 10 - Math.max(0, -swing) * 18;
+
+  // Upper arm
+  ctx.strokeStyle = CYBER_COLORS.suitMid;
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.ellipse(x + dir * 7, y + 3, 14, 5.5, dir * .1, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = 'rgba(214,155,61,.45)';
+  ctx.moveTo(shoulderX, shoulderY + 2);
+  ctx.lineTo(elbowX, elbowY);
+  ctx.stroke();
+
+  // Forearm
+  ctx.strokeStyle = CYBER_COLORS.suitDark;
+  ctx.lineWidth = 6.4;
   ctx.beginPath();
-  ctx.ellipse(x + dir * 11, y + 1, 5, 2, dir * .1, 0, Math.PI * 2);
+  ctx.moveTo(elbowX, elbowY);
+  ctx.lineTo(handX, handY);
+  ctx.stroke();
+
+  // Cyan piping along arm
+  ctx.strokeStyle = hexToRgba(CYBER_COLORS.cyan, .8);
+  ctx.lineWidth = 1.1;
+  ctx.shadowColor = CYBER_COLORS.cyan;
+  ctx.shadowBlur = 4;
+  ctx.beginPath();
+  ctx.moveTo(shoulderX + side * 3, shoulderY + 4);
+  ctx.lineTo(elbowX + side * 2, elbowY);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Hand/glove
+  ctx.fillStyle = CYBER_COLORS.suitLight;
+  ctx.strokeStyle = CYBER_COLORS.inkLine;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(handX, handY, 3.6, 0, Math.PI * 2);
   ctx.fill();
+  ctx.stroke();
+
+  // Glove accent dot
+  ctx.fillStyle = accent;
+  ctx.shadowColor = accent;
+  ctx.shadowBlur = 5;
+  ctx.beginPath();
+  ctx.arc(handX, handY, 1.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.lineCap = 'butt';
 }
 
-function drawHand(x, y) {
-  ctx.fillStyle = '#111820';
+function drawCyberTorso(cx, hipY, shoulderY, accent) {
+  // Body shell (back-view: shoulders wide, taper to waist)
+  const grad = ctx.createLinearGradient(0, shoulderY, 0, hipY);
+  grad.addColorStop(0, CYBER_COLORS.suitLight);
+  grad.addColorStop(.55, CYBER_COLORS.suitMid);
+  grad.addColorStop(1, CYBER_COLORS.suitDark);
+
+  ctx.fillStyle = grad;
+  ctx.strokeStyle = CYBER_COLORS.inkLine;
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.arc(x, y, 4.6, 0, Math.PI * 2);
+  ctx.moveTo(cx - 22, shoulderY + 2);
+  ctx.quadraticCurveTo(cx - 26, shoulderY - 4, cx - 18, shoulderY - 8);
+  ctx.lineTo(cx + 18, shoulderY - 8);
+  ctx.quadraticCurveTo(cx + 26, shoulderY - 4, cx + 22, shoulderY + 2);
+  ctx.lineTo(cx + 14, hipY);
+  ctx.lineTo(cx - 14, hipY);
+  ctx.closePath();
   ctx.fill();
-  ctx.strokeStyle = 'rgba(214,155,61,.42)';
-  ctx.lineWidth = 1;
   ctx.stroke();
+
+  // Spine accent (chapter color, glowing)
+  ctx.strokeStyle = hexToRgba(accent, .9);
+  ctx.lineWidth = 2.4;
+  ctx.shadowColor = accent;
+  ctx.shadowBlur = 12;
+  ctx.beginPath();
+  ctx.moveTo(cx, shoulderY - 4);
+  ctx.lineTo(cx, hipY - 2);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Tech panel (rectangle on upper back, chapter color)
+  ctx.fillStyle = hexToRgba(accent, .35);
+  ctx.strokeStyle = hexToRgba(accent, .9);
+  ctx.lineWidth = 1.2;
+  ctx.shadowColor = accent;
+  ctx.shadowBlur = 8;
+  roundRect(cx - 8, shoulderY + 4, 16, 18, 3);
+  ctx.fill();
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Panel inner glow line
+  ctx.strokeStyle = 'rgba(255,255,255,.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx - 4, shoulderY + 10);
+  ctx.lineTo(cx + 4, shoulderY + 10);
+  ctx.moveTo(cx - 4, shoulderY + 16);
+  ctx.lineTo(cx + 4, shoulderY + 16);
+  ctx.stroke();
+
+  // Shoulder pads
+  ctx.fillStyle = hexToRgba(accent, .6);
+  ctx.shadowColor = accent;
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.ellipse(cx - 19, shoulderY - 2, 8, 4.5, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx + 19, shoulderY - 2, 8, 4.5, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Cyan side seams
+  ctx.strokeStyle = CYBER_COLORS.cyan;
+  ctx.lineWidth = 1.4;
+  ctx.shadowColor = CYBER_COLORS.cyan;
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  ctx.moveTo(cx - 21, shoulderY);
+  ctx.lineTo(cx - 13, hipY);
+  ctx.moveTo(cx + 21, shoulderY);
+  ctx.lineTo(cx + 13, hipY);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Magenta waistband
+  ctx.fillStyle = CYBER_COLORS.pink;
+  ctx.shadowColor = CYBER_COLORS.pink;
+  ctx.shadowBlur = 8;
+  ctx.fillRect(cx - 14, hipY - 3.5, 28, 3);
+  ctx.shadowBlur = 0;
+}
+
+function drawCyberHead(x, y, accent, sliding) {
+  // Helmet base — back view, dome shape
+  const grad = ctx.createRadialGradient(x, y - 4, 2, x, y + 2, 16);
+  grad.addColorStop(0, CYBER_COLORS.suitLight);
+  grad.addColorStop(1, CYBER_COLORS.suitDark);
+
+  ctx.fillStyle = grad;
+  ctx.strokeStyle = CYBER_COLORS.inkLine;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(x, y, 13, 15, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Visor cap band (cyan glowing strip — like the PNG visor)
+  ctx.fillStyle = CYBER_COLORS.visor;
+  ctx.shadowColor = CYBER_COLORS.cyan;
+  ctx.shadowBlur = 12;
+  ctx.beginPath();
+  ctx.ellipse(x, y - 6, 12, 3.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Visor inner highlight
+  ctx.fillStyle = 'rgba(255,255,255,.7)';
+  ctx.beginPath();
+  ctx.ellipse(x - 4, y - 7, 4, 1.3, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Magenta side antenna lights (like PNG's pink accents)
+  ctx.fillStyle = CYBER_COLORS.pink;
+  ctx.shadowColor = CYBER_COLORS.pink;
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  ctx.arc(x - 12, y, 1.6, 0, Math.PI * 2);
+  ctx.arc(x + 12, y, 1.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Top fin (chapter accent — peaks at crown)
+  ctx.fillStyle = accent;
+  ctx.shadowColor = accent;
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  ctx.moveTo(x - 7, y - 12);
+  ctx.lineTo(x + 7, y - 12);
+  ctx.lineTo(x + 5, y - 16);
+  ctx.lineTo(x - 5, y - 16);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Lower neck shadow band (back of helmet)
+  if (!sliding) {
+    ctx.strokeStyle = hexToRgba(CYBER_COLORS.cyan, .55);
+    ctx.lineWidth = 1.2;
+    ctx.shadowColor = CYBER_COLORS.cyan;
+    ctx.shadowBlur = 4;
+    ctx.beginPath();
+    ctx.ellipse(x, y + 9, 10, 2.5, 0, 0, Math.PI);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+}
+
+function applyPowerTint(scale) {
+  if (!GAME_STATE.activePower || performance.now() >= GAME_STATE.powerUntil) return;
+  const pulse = .12 + Math.sin(GAME_STATE.elapsed * 7) * .07;
+  ctx.globalCompositeOperation = 'source-atop';
+  ctx.fillStyle = hexToRgba(POWERUPS[GAME_STATE.activePower].color, pulse);
+  ctx.fillRect(-60, -150, 120, 160);
+  ctx.globalCompositeOperation = 'source-over';
 }
 
 function drawForeground(W, H) {
@@ -3730,6 +4166,11 @@ window.addEventListener('keydown', event => {
   if (key === 'p' || key === 'escape') togglePause();
 });
 
+window.addEventListener('keyup', event => {
+  const key = event.key.toLowerCase();
+  if (['arrowup', 'w', ' '].includes(key)) releaseJump();
+});
+
 let touchStart = null;
 canvas.addEventListener('touchstart', event => {
   if (GAME_STATE.mode === 'playing') event.preventDefault();
@@ -3760,16 +4201,26 @@ canvas.addEventListener('touchcancel', () => {
 }, { passive: true });
 
 document.querySelectorAll('.pad-btn').forEach(btn => {
+  const action = btn.dataset.action;
   btn.addEventListener('click', () => {
-    const action = btn.dataset.action;
     if (action === 'left') moveLane(-1);
     if (action === 'right') moveLane(1);
     if (action === 'jump') jump();
     if (action === 'slide') slide();
   });
+  if (action === 'jump') {
+    const release = (e) => { e.preventDefault?.(); releaseJump(); };
+    btn.addEventListener('touchend', release, { passive: false });
+    btn.addEventListener('touchcancel', release, { passive: false });
+    btn.addEventListener('mouseup', release);
+    btn.addEventListener('mouseleave', release);
+  }
 });
 
-document.getElementById('start-btn').addEventListener('click', () => { playMusic(); resetRun(); });
+document.getElementById('start-btn').addEventListener('click', () => {
+  try { playMusic(); } catch (e) {}
+  try { resetRun(); } catch (e) { console.error('start failed:', e); }
+});
 document.getElementById('music-btn').addEventListener('click', toggleMusic);
 document.getElementById('chapter-continue').addEventListener('click', startNextChapter);
 document.getElementById('pause-btn').addEventListener('click', togglePause);
