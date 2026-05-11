@@ -1023,6 +1023,161 @@ h2 {
 .stat-tile b {
   font-size: 28px !important;
 }
+
+/* ---- Shop ---- */
+.title-wallet {
+  display: inline-block;
+  margin: 4px 0 12px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 245, 255, .35);
+  background: rgba(0, 245, 255, .08);
+  color: #b9f1ff;
+  font-family: "Orbitron", sans-serif;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-shadow: 0 0 10px rgba(0, 245, 255, .35);
+}
+
+.shop-wallet {
+  margin: 8px 0 18px;
+  font-family: "Orbitron", sans-serif;
+  font-size: 16px;
+  letter-spacing: 1.6px;
+  color: #b9f1ff;
+}
+.shop-wallet b {
+  color: #00f5ff;
+  font-size: 20px;
+  text-shadow: 0 0 12px rgba(0, 245, 255, .55);
+  margin: 0 4px;
+}
+
+.shop-section { margin-bottom: 18px; }
+.shop-section-title {
+  font-family: "Rajdhani", sans-serif;
+  font-weight: 800;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: #ff66c4;
+  text-shadow: 0 0 10px rgba(255, 46, 154, .45);
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.shop-hint {
+  color: #a8b4c4;
+  font-size: 13px;
+  margin: -2px 0 8px;
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.shop-card {
+  border-radius: 10px;
+  border: 1px solid rgba(0, 245, 255, .28);
+  background:
+    linear-gradient(160deg, rgba(0, 245, 255, .06), rgba(255, 46, 154, .04)),
+    rgba(10, 8, 22, .80);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 130px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .15s ease;
+}
+.shop-card:hover {
+  border-color: rgba(0, 245, 255, .7);
+  box-shadow: 0 0 22px rgba(0, 245, 255, .25);
+}
+.shop-card.owned { border-color: rgba(113, 244, 155, .55); }
+.shop-card.equipped { border-color: rgba(255, 102, 196, .85); box-shadow: 0 0 22px rgba(255, 46, 154, .28); }
+
+.shop-swatch {
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  margin-bottom: 4px;
+}
+
+.shop-card .shop-name {
+  font-family: "Rajdhani", sans-serif;
+  font-weight: 800;
+  color: #ecf6ff;
+  font-size: 15px;
+  letter-spacing: .5px;
+}
+.shop-card .shop-desc {
+  color: #98a8bd;
+  font-size: 12px;
+  line-height: 1.35;
+  flex: 1;
+}
+.shop-card .shop-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.shop-card .shop-price {
+  color: #ffd166;
+  font-family: "Orbitron", sans-serif;
+  font-size: 13px;
+  letter-spacing: 1.2px;
+  text-shadow: 0 0 8px rgba(255, 209, 102, .35);
+}
+.shop-card .shop-price.free { color: #71f49b; }
+.shop-card .shop-stock {
+  color: #71f49b;
+  font-family: "Rajdhani", sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+.shop-btn {
+  border: 1px solid rgba(0, 245, 255, .55);
+  background: rgba(0, 245, 255, .12);
+  color: #d6f7ff;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  -webkit-tap-highlight-color: transparent;
+}
+.shop-btn:hover { border-color: rgba(0, 245, 255, .9); box-shadow: 0 0 14px rgba(0, 245, 255, .35); }
+.shop-btn:disabled { opacity: .45; cursor: not-allowed; }
+.shop-btn.primary {
+  background: linear-gradient(135deg, #ff2e9a, #8338ec);
+  border-color: rgba(255, 46, 154, .7);
+  color: #fff;
+}
+.shop-btn.owned-tag {
+  background: rgba(113, 244, 155, .12);
+  border-color: rgba(113, 244, 155, .55);
+  color: #71f49b;
+  pointer-events: none;
+}
+.shop-btn.equipped-tag {
+  background: rgba(255, 46, 154, .15);
+  border-color: rgba(255, 102, 196, .8);
+  color: #ff9ad9;
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .shop-card { min-height: 120px; padding: 10px; }
+  .shop-card .shop-name { font-size: 14px; }
+  .shop-card .shop-desc { font-size: 11.5px; }
+}
 </style>
 </head>
 <body>
@@ -1101,9 +1256,33 @@ h2 {
         <div class="concept-tile"><strong>Bölüm 2</strong><span>User Story, include ve extend. Gereksinimi doğru cümleye çevir.</span></div>
         <div class="concept-tile"><strong>Bölüm 3</strong><span>Sistem sınırı ve karma modelleme. Tüm kavramları hız altında birleştir.</span></div>
       </div>
+      <div class="title-wallet" id="title-wallet" aria-live="polite"></div>
       <div class="actions">
         <button class="btn primary" id="start-btn" type="button">Koşuyu Başlat</button>
+        <button class="btn" id="open-shop-btn" type="button">Mağaza</button>
         <button class="btn" id="open-guide-btn" type="button">Kavram Rehberi</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="overlay" id="shop-screen">
+    <div class="modal">
+      <div class="close-row"><button class="btn" id="close-shop-btn" type="button">Kapat</button></div>
+      <div class="eyebrow">Synthwave Mağazası</div>
+      <h2>Koşu Yükseltmeleri</h2>
+      <div class="shop-wallet">Cüzdan: <b id="shop-wallet-amount">0</b> para</div>
+      <div class="shop-section">
+        <div class="shop-section-title">Karakter Skinleri</div>
+        <div class="shop-grid" id="shop-skins"></div>
+      </div>
+      <div class="shop-section">
+        <div class="shop-section-title">İz Efektleri</div>
+        <div class="shop-grid" id="shop-trails"></div>
+      </div>
+      <div class="shop-section">
+        <div class="shop-section-title">Sarf Malzemeleri</div>
+        <p class="shop-hint">Sarf malzemeleri her koşunun başında otomatik kullanılır.</p>
+        <div class="shop-grid" id="shop-consumables"></div>
       </div>
     </div>
   </section>
@@ -1187,6 +1366,7 @@ const UI = {
   pause: document.getElementById('pause-screen'),
   guide: document.getElementById('guide-screen'),
   final: document.getElementById('final-screen'),
+  shop: document.getElementById('shop-screen'),
   prompt: document.getElementById('prompt-panel'),
   promptKicker: document.getElementById('prompt-kicker'),
   promptText: document.getElementById('prompt-text'),
@@ -1874,7 +2054,7 @@ function resizeCanvas() {
 }
 
 function showOverlay(name) {
-  [UI.title, UI.chapter, UI.pause, UI.guide, UI.final].forEach(el => el.classList.remove('show'));
+  [UI.title, UI.chapter, UI.pause, UI.guide, UI.final, UI.shop].forEach(el => el && el.classList.remove('show'));
   if (name && UI[name]) UI[name].classList.add('show');
 }
 
@@ -1901,6 +2081,196 @@ function closeGuide() {
     return;
   }
   showOverlay(null);
+}
+
+// ---------- Shop module ----------
+const SHOP_KEY = 'shadow_analyst_shop_v1';
+const SHOP_CATALOG = {
+  skins: [
+    { id: 'default', name: 'Klasik', desc: 'Pistin standart neon koşucusu.', price: 0, color: null },
+    { id: 'magenta', name: 'Magenta Sürücü', desc: 'Sıcak pembe ışıltıyla parlar.', price: 100, color: '#ff2e9a' },
+    { id: 'cyan',    name: 'Cyan Hayalet', desc: 'Soğuk turkuaz neon kaplama.',     price: 200, color: '#00f5ff' },
+    { id: 'golden',  name: 'Altın Analist', desc: 'Çok zorlu koşulara hak edilmiş altın yansıma.', price: 400, color: '#ffd166' },
+  ],
+  trails: [
+    { id: 'default', name: 'Standart İz', desc: 'Pembe-cyan çift hatlı klasik iz.', price: 0, colors: null },
+    { id: 'pink',    name: 'Pembe Şerit', desc: 'Saf magenta, daha kalın hat.',       price: 80,  colors: ['#ff2e9a'] },
+    { id: 'cyan',    name: 'Cyan Şerit',  desc: 'Saf cyan, daha kalın hat.',          price: 160, colors: ['#00f5ff'] },
+    { id: 'rainbow', name: 'Spektrum',     desc: 'Magenta, mor ve cyan değişen iz.',   price: 300, colors: ['#ff2e9a', '#8338ec', '#00f5ff'] },
+  ],
+  consumables: [
+    { id: 'extraLife', name: 'Ekstra Can', desc: 'Koşuya +1 can ile başla.',           price: 50 },
+    { id: 'shield',    name: 'Başlangıç Kalkanı', desc: 'Koşunun başında 1 kalkan.',  price: 40 },
+  ],
+};
+
+let SHOP = null;
+
+function loadShop() {
+  let data = { wallet: 0, ownedSkins: ['default'], ownedTrails: ['default'], equippedSkin: 'default', equippedTrail: 'default', consumables: {} };
+  try {
+    const raw = localStorage.getItem(SHOP_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      data = Object.assign(data, parsed);
+      // Sanity guards
+      if (!Array.isArray(data.ownedSkins)) data.ownedSkins = ['default'];
+      if (!Array.isArray(data.ownedTrails)) data.ownedTrails = ['default'];
+      if (!data.ownedSkins.includes('default')) data.ownedSkins.unshift('default');
+      if (!data.ownedTrails.includes('default')) data.ownedTrails.unshift('default');
+      if (!data.consumables || typeof data.consumables !== 'object') data.consumables = {};
+    }
+  } catch (e) {}
+  SHOP = data;
+  return SHOP;
+}
+
+function saveShop() {
+  try { localStorage.setItem(SHOP_KEY, JSON.stringify(SHOP)); } catch (e) {}
+}
+
+function addCoinsToWallet(amount) {
+  if (!SHOP) loadShop();
+  if (amount <= 0) return;
+  SHOP.wallet += Math.floor(amount);
+  saveShop();
+  updateTitleWallet();
+}
+
+function updateTitleWallet() {
+  if (!SHOP) loadShop();
+  const el = document.getElementById('title-wallet');
+  if (el) el.textContent = '💎 Cüzdan: ' + SHOP.wallet.toLocaleString() + ' para';
+  const w = document.getElementById('shop-wallet-amount');
+  if (w) w.textContent = SHOP.wallet.toLocaleString();
+}
+
+function consumeStartOfRun() {
+  if (!SHOP) loadShop();
+  let extras = { lives: 0, shields: 0 };
+  if (SHOP.consumables.extraLife > 0) {
+    extras.lives = SHOP.consumables.extraLife;
+    SHOP.consumables.extraLife = 0;
+  }
+  if (SHOP.consumables.shield > 0) {
+    extras.shields = SHOP.consumables.shield;
+    SHOP.consumables.shield = 0;
+  }
+  saveShop();
+  return extras;
+}
+
+function equippedSkinDef() {
+  if (!SHOP) loadShop();
+  return SHOP_CATALOG.skins.find(s => s.id === SHOP.equippedSkin) || SHOP_CATALOG.skins[0];
+}
+
+function equippedTrailDef() {
+  if (!SHOP) loadShop();
+  return SHOP_CATALOG.trails.find(t => t.id === SHOP.equippedTrail) || SHOP_CATALOG.trails[0];
+}
+
+function buyShopItem(category, id) {
+  if (!SHOP) loadShop();
+  const item = SHOP_CATALOG[category].find(i => i.id === id);
+  if (!item) return false;
+  if (category === 'consumables') {
+    if (SHOP.wallet < item.price) { showToast('Yetersiz para.', 'no'); return false; }
+    SHOP.wallet -= item.price;
+    SHOP.consumables[id] = (SHOP.consumables[id] || 0) + 1;
+    saveShop();
+    renderShop();
+    showToast(item.name + ' alındı.', 'ok');
+    return true;
+  }
+  const ownedList = category === 'skins' ? SHOP.ownedSkins : SHOP.ownedTrails;
+  if (ownedList.includes(id)) return false;
+  if (SHOP.wallet < item.price) { showToast('Yetersiz para.', 'no'); return false; }
+  SHOP.wallet -= item.price;
+  ownedList.push(id);
+  saveShop();
+  renderShop();
+  showToast(item.name + ' kilitlendi açıldı.', 'ok');
+  return true;
+}
+
+function equipShopItem(category, id) {
+  if (!SHOP) loadShop();
+  const ownedList = category === 'skins' ? SHOP.ownedSkins : SHOP.ownedTrails;
+  if (!ownedList.includes(id)) return false;
+  if (category === 'skins') SHOP.equippedSkin = id;
+  else SHOP.equippedTrail = id;
+  saveShop();
+  renderShop();
+  return true;
+}
+
+function renderShopGroup(containerId, category) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const ownedList = category === 'skins' ? SHOP.ownedSkins : (category === 'trails' ? SHOP.ownedTrails : null);
+  const equippedId = category === 'skins' ? SHOP.equippedSkin : (category === 'trails' ? SHOP.equippedTrail : null);
+  container.innerHTML = SHOP_CATALOG[category].map(item => {
+    let swatch = '';
+    if (category === 'skins' && item.color) {
+      swatch = '<div class="shop-swatch" style="background: linear-gradient(135deg, ' + item.color + ', #1a0a2a)"></div>';
+    } else if (category === 'skins') {
+      swatch = '<div class="shop-swatch" style="background: linear-gradient(135deg, #ff2e9a, #00f5ff)"></div>';
+    } else if (category === 'trails' && item.colors) {
+      const grad = item.colors.length > 1 ? item.colors.join(', ') : (item.colors[0] + ', #08081a');
+      swatch = '<div class="shop-swatch" style="background: linear-gradient(90deg, ' + grad + ')"></div>';
+    } else if (category === 'trails') {
+      swatch = '<div class="shop-swatch" style="background: linear-gradient(90deg, #ff2e9a, #00f5ff)"></div>';
+    }
+    let btn, classes = 'shop-card';
+    if (category === 'consumables') {
+      const stock = SHOP.consumables[item.id] || 0;
+      const canBuy = SHOP.wallet >= item.price;
+      btn = '<button class="shop-btn primary" data-shop="buy" data-cat="' + category + '" data-id="' + item.id + '"' + (canBuy ? '' : ' disabled') + '>Satın Al</button>';
+      return '<div class="' + classes + '">' +
+        '<div class="shop-name">' + item.name + '</div>' +
+        '<div class="shop-desc">' + item.desc + '</div>' +
+        '<div class="shop-bottom">' +
+          '<span class="shop-price">' + item.price + ' para</span>' +
+          (stock > 0 ? '<span class="shop-stock">Stok: ' + stock + '</span>' : '') +
+          btn +
+        '</div></div>';
+    }
+    const owned = ownedList.includes(item.id);
+    const equipped = equippedId === item.id;
+    if (equipped) classes += ' equipped';
+    else if (owned) classes += ' owned';
+    if (item.price === 0 || owned) {
+      btn = equipped
+        ? '<button class="shop-btn equipped-tag">Kullanılıyor</button>'
+        : '<button class="shop-btn" data-shop="equip" data-cat="' + category + '" data-id="' + item.id + '">Kullan</button>';
+    } else {
+      const canBuy = SHOP.wallet >= item.price;
+      btn = '<button class="shop-btn primary" data-shop="buy" data-cat="' + category + '" data-id="' + item.id + '"' + (canBuy ? '' : ' disabled') + '>Satın Al</button>';
+    }
+    const priceTag = item.price === 0
+      ? '<span class="shop-price free">Bedava</span>'
+      : (owned ? '<span class="shop-price free">Sahip</span>' : '<span class="shop-price">' + item.price + ' para</span>');
+    return '<div class="' + classes + '">' +
+      swatch +
+      '<div class="shop-name">' + item.name + '</div>' +
+      '<div class="shop-desc">' + item.desc + '</div>' +
+      '<div class="shop-bottom">' + priceTag + btn + '</div></div>';
+  }).join('');
+}
+
+function renderShop() {
+  if (!SHOP) loadShop();
+  updateTitleWallet();
+  renderShopGroup('shop-skins', 'skins');
+  renderShopGroup('shop-trails', 'trails');
+  renderShopGroup('shop-consumables', 'consumables');
+}
+
+function openShop() {
+  if (!SHOP) loadShop();
+  renderShop();
+  showOverlay('shop');
 }
 
 function setMode(mode) {
@@ -1930,7 +2300,7 @@ function resetRun() {
     score: 0,
     xp: 0,
     coins: 0,
-    lives: 3,
+    lives: 3 + (SHOP ? 0 : 0), // base lives — extras applied below
     shields: 0,
     streak: 0,
     bestStreak: 0,
@@ -1958,6 +2328,16 @@ function resetRun() {
   });
   UI.prompt.classList.remove('show', 'slowmo');
   document.body.classList.remove('slowmo-active');
+  // Apply shop consumables for this run (extra lives / starting shields)
+  const extras = consumeStartOfRun();
+  if (extras.lives > 0) {
+    GAME_STATE.lives += extras.lives;
+    showToast('Ekstra can +' + extras.lives, 'ok');
+  }
+  if (extras.shields > 0) {
+    GAME_STATE.shields += extras.shields;
+    showToast('Başlangıç kalkanı +' + extras.shields, 'ok');
+  }
   startSentence();
   updateHUD();
   showToast('Bölüm 1: Actor ve Use Case', 'info');
@@ -2361,10 +2741,13 @@ function finishRun() {
   setMode('final');
   UI.prompt.classList.remove('show', 'slowmo');
   document.body.classList.remove('slowmo-active');
+  // Transfer coins earned this run to the persistent shop wallet
+  const earned = GAME_STATE.coins;
+  addCoinsToWallet(earned);
   document.getElementById('final-stats').innerHTML = [
     ['Skor', GAME_STATE.score.toLocaleString()],
     ['XP', GAME_STATE.xp.toLocaleString()],
-    ['Para', GAME_STATE.coins.toLocaleString()],
+    ['Para', earned.toLocaleString()],
     ['En İyi Seri', GAME_STATE.bestStreak.toLocaleString()],
     ['Cümle', GAME_STATE.sentencesCompleted.toLocaleString()],
     ['Doğru', GAME_STATE.correctTotal + '/' + GAME_STATE.answeredTotal],
@@ -2471,10 +2854,14 @@ function handleCrash(reason) {
 
 function gameOver(reason) {
   setMode('pause');
+  // Coins earned even on a failed run get banked
+  const earned = GAME_STATE.coins;
+  addCoinsToWallet(earned);
   document.getElementById('pause-eyebrow').textContent = 'Koşu Sona Erdi';
   document.getElementById('pause-title').textContent = 'Oyun Bitti';
   document.getElementById('pause-copy').textContent =
-    (reason || 'Koşu sona erdi.') + ' Doğru kapı sayısı: ' + GAME_STATE.correctTotal + '. Yeniden deneyebilirsin.';
+    (reason || 'Koşu sona erdi.') + ' Doğru kapı sayısı: ' + GAME_STATE.correctTotal +
+    '. Kazanılan para: ' + earned.toLocaleString() + '. Yeniden deneyebilirsin.';
   document.getElementById('resume-btn').style.display = 'none';
   showOverlay('pause');
 }
@@ -3586,7 +3973,10 @@ function drawPlayer() {
   const flicker = GAME_STATE.invulnerable > 0 && Math.floor(GAME_STATE.elapsed * 18) % 2 === 0;
   if (flicker) return;
 
-  const accent = currentChapter().color;
+  const skinDef = equippedSkinDef();
+  const accent = skinDef.color || currentChapter().color;
+  const trailDef = equippedTrailDef();
+  const trailColors = (trailDef && trailDef.colors) ? trailDef.colors : ['#ff2e9a', '#00f5ff'];
   const stride = Math.sin(GAME_STATE.elapsed * 16);
   const bob = sliding ? 0 : Math.abs(stride) * 4 - 2;
 
@@ -3611,11 +4001,13 @@ function drawPlayer() {
   if (!sliding && GAME_STATE.streak > 2) {
     ctx.save();
     const trailIntensity = Math.min(1, GAME_STATE.streak / 8);
-    for (let i = 0; i < 3; i++) {
+    const lines = Math.max(3, trailColors.length);
+    for (let i = 0; i < lines; i++) {
       const off = i * 14 + (GAME_STATE.elapsed * 380) % 14;
-      ctx.strokeStyle = hexToRgba(i === 0 ? '#ff2e9a' : '#00f5ff', .55 * trailIntensity);
-      ctx.lineWidth = 2;
-      ctx.shadowColor = i === 0 ? '#ff2e9a' : '#00f5ff';
+      const col = trailColors[i % trailColors.length];
+      ctx.strokeStyle = hexToRgba(col, .55 * trailIntensity);
+      ctx.lineWidth = trailColors.length === 1 ? 3 : 2;
+      ctx.shadowColor = col;
       ctx.shadowBlur = 10;
       ctx.beginPath();
       ctx.moveTo(-22 - off, 22 - i * 6);
@@ -3674,7 +4066,8 @@ function getPlayerScale() {
 }
 
 function drawCyberRun(stride) {
-  const accent = currentChapter().color;
+  const _skin = equippedSkinDef();
+  const accent = (_skin && _skin.color) || currentChapter().color;
   const scale = getPlayerScale();
   const bob = Math.abs(stride) * 2.2;
   const lean = stride * .025;
@@ -3733,7 +4126,8 @@ function drawCyberRun(stride) {
 }
 
 function drawCyberJump(jumpY, stride) {
-  const accent = currentChapter().color;
+  const _skin = equippedSkinDef();
+  const accent = (_skin && _skin.color) || currentChapter().color;
   const scale = getPlayerScale();
   const tuck = Math.min(1, jumpY / 90);
   const tilt = -.08 - tuck * .05;
@@ -3773,7 +4167,8 @@ function drawCyberJump(jumpY, stride) {
 }
 
 function drawCyberSlide(stride) {
-  const accent = currentChapter().color;
+  const _skin = equippedSkinDef();
+  const accent = (_skin && _skin.color) || currentChapter().color;
   const scale = getPlayerScale();
   const t = GAME_STATE.elapsed;
 
@@ -4358,6 +4753,23 @@ document.getElementById('close-guide-btn').addEventListener('click', closeGuide)
 document.getElementById('hud-guide-btn').addEventListener('click', openGuide);
 document.getElementById('hud-pause-btn').addEventListener('click', togglePause);
 
+// Shop UI
+document.getElementById('open-shop-btn').addEventListener('click', openShop);
+document.getElementById('close-shop-btn').addEventListener('click', () => {
+  showOverlay('title');
+});
+document.getElementById('shop-screen').addEventListener('click', (e) => {
+  const t = e.target.closest('[data-shop]');
+  if (!t) return;
+  const action = t.dataset.shop;
+  const cat = t.dataset.cat;
+  const id = t.dataset.id;
+  if (action === 'buy') buyShopItem(cat, id);
+  else if (action === 'equip') equipShopItem(cat, id);
+});
+
+loadShop();
+updateTitleWallet();
 loadAssets();
 resizeCanvas();
 draw();
