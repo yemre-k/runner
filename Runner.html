@@ -1178,6 +1178,67 @@ h2 {
   .shop-card .shop-name { font-size: 14px; }
   .shop-card .shop-desc { font-size: 11.5px; }
 }
+
+/* ───── Knowledge memory overlay ───── */
+.memory-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin: 14px 0 18px;
+}
+.memory-summary .stat-tile {
+  background: linear-gradient(155deg, rgba(0, 245, 255, .12), rgba(131, 56, 236, .12));
+  border: 1px solid rgba(0, 245, 255, .35);
+  border-radius: 10px;
+  padding: 10px 12px;
+  text-align: center;
+  box-shadow: 0 0 14px rgba(0, 245, 255, .12) inset;
+}
+.memory-summary .stat-tile b { font-size: 20px; color: #00f5ff; display: block; }
+.memory-summary .stat-tile span { font-size: 11px; opacity: .85; letter-spacing: 1px; text-transform: uppercase; }
+.memory-section { margin-bottom: 18px; }
+.memory-section-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #ff66c4;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.memory-list { display: flex; flex-direction: column; gap: 6px; }
+.memory-row {
+  background: rgba(10, 14, 25, .65);
+  border: 1px solid rgba(0, 245, 255, .25);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+.memory-row .mem-label { font-size: 13px; color: #e6f1ff; }
+.memory-row .mem-meta { font-size: 11.5px; opacity: .8; }
+.memory-bar {
+  grid-column: 1 / -1;
+  height: 6px;
+  background: rgba(255, 255, 255, .07);
+  border-radius: 99px;
+  overflow: hidden;
+  position: relative;
+}
+.memory-bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ff2e9a, #00f5ff);
+  box-shadow: 0 0 10px rgba(0, 245, 255, .45);
+}
+.memory-row.empty { text-align: center; opacity: .65; font-size: 12px; }
+.memory-row .mem-stat-good { color: #71f49b; }
+.memory-row .mem-stat-bad { color: #ff7aa2; }
+@media (max-width: 760px) {
+  .memory-summary .stat-tile b { font-size: 17px; }
+  .memory-row { padding: 7px 10px; }
+}
 </style>
 </head>
 <body>
@@ -1260,6 +1321,7 @@ h2 {
       <div class="actions">
         <button class="btn primary" id="start-btn" type="button">Koşuyu Başlat</button>
         <button class="btn" id="open-shop-btn" type="button">Mağaza</button>
+        <button class="btn" id="open-memory-btn" type="button">Bilgi Hafızası</button>
         <button class="btn" id="open-guide-btn" type="button">Kavram Rehberi</button>
       </div>
     </div>
@@ -1283,6 +1345,31 @@ h2 {
         <div class="shop-section-title">Sarf Malzemeleri</div>
         <p class="shop-hint">Sarf malzemeleri her koşunun başında otomatik kullanılır.</p>
         <div class="shop-grid" id="shop-consumables"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="overlay" id="memory-screen">
+    <div class="modal">
+      <div class="close-row"><button class="btn" id="close-memory-btn" type="button">Kapat</button></div>
+      <div class="eyebrow">Bilgi Hafızası</div>
+      <h2>Öğrenme İstatistikleri</h2>
+      <p class="lead">Bilgi hafızası tüm koşularda biriken doğru/yanlış kayıtlarını saklar. Yanlış cevapladığın sorular bir sonraki koşuda öncelikli olarak karşına çıkar.</p>
+      <div class="memory-summary" id="memory-summary"></div>
+      <div class="memory-section">
+        <div class="memory-section-title">Konu Bazlı Başarım</div>
+        <div class="memory-list" id="memory-topic-list"></div>
+      </div>
+      <div class="memory-section">
+        <div class="memory-section-title">En Zorlandığın Konular</div>
+        <div class="memory-list" id="memory-hardest-list"></div>
+      </div>
+      <div class="memory-section">
+        <div class="memory-section-title">Tekrar Sırası (sıradaki koşuda öne çıkacak)</div>
+        <div class="memory-list" id="memory-queue-list"></div>
+      </div>
+      <div class="actions">
+        <button class="btn warn" id="reset-memory-btn" type="button">Hafızayı Sıfırla</button>
       </div>
     </div>
   </section>
@@ -1367,6 +1454,7 @@ const UI = {
   guide: document.getElementById('guide-screen'),
   final: document.getElementById('final-screen'),
   shop: document.getElementById('shop-screen'),
+  memory: document.getElementById('memory-screen'),
   prompt: document.getElementById('prompt-panel'),
   promptKicker: document.getElementById('prompt-kicker'),
   promptText: document.getElementById('prompt-text'),
@@ -2054,7 +2142,7 @@ function resizeCanvas() {
 }
 
 function showOverlay(name) {
-  [UI.title, UI.chapter, UI.pause, UI.guide, UI.final, UI.shop].forEach(el => el && el.classList.remove('show'));
+  [UI.title, UI.chapter, UI.pause, UI.guide, UI.final, UI.shop, UI.memory].forEach(el => el && el.classList.remove('show'));
   if (name && UI[name]) UI[name].classList.add('show');
 }
 
@@ -2273,6 +2361,189 @@ function openShop() {
   showOverlay('shop');
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// KNOWLEDGE MEMORY (persistent: per-question correctness, spaced repetition, stats)
+// ─────────────────────────────────────────────────────────────────────────────
+const KNOWLEDGE_KEY = 'shadow_analyst_knowledge_v1';
+let KNOWLEDGE = null;
+
+function questionId(q) {
+  // Stable id from prompt text (case Turkish chars kept). Hash unnecessary for ~50 questions.
+  return 'q:' + (q && q.prompt ? q.prompt.slice(0, 80) : 'unknown');
+}
+
+function loadKnowledge() {
+  let data = { items: {}, focuses: {}, totalCorrect: 0, totalWrong: 0, sessionsStarted: 0 };
+  try {
+    const raw = localStorage.getItem(KNOWLEDGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      data = Object.assign(data, parsed);
+      if (!data.items || typeof data.items !== 'object') data.items = {};
+      if (!data.focuses || typeof data.focuses !== 'object') data.focuses = {};
+    }
+  } catch (e) {}
+  KNOWLEDGE = data;
+  return KNOWLEDGE;
+}
+
+function saveKnowledge() {
+  try { localStorage.setItem(KNOWLEDGE_KEY, JSON.stringify(KNOWLEDGE)); } catch (e) {}
+}
+
+function recordQuestionOutcome(question, correct) {
+  if (!KNOWLEDGE) loadKnowledge();
+  const id = questionId(question);
+  const item = KNOWLEDGE.items[id] || { correct: 0, wrong: 0, streak: 0, focus: question.focus, kind: question.kind, ch: question.ch, lastSeenAt: 0, weight: 1 };
+  item.focus = question.focus;
+  item.kind = question.kind;
+  item.ch = question.ch;
+  item.lastSeenAt = Date.now();
+  if (correct) {
+    item.correct += 1;
+    item.streak += 1;
+    // Weight decays so well-known items appear less often (min .25)
+    item.weight = Math.max(.25, item.weight * 0.6);
+    KNOWLEDGE.totalCorrect += 1;
+  } else {
+    item.wrong += 1;
+    item.streak = 0;
+    // Weight spikes so missed items return frequently (max 6x)
+    item.weight = Math.min(6, item.weight + 2.5);
+    KNOWLEDGE.totalWrong += 1;
+  }
+  KNOWLEDGE.items[id] = item;
+  const focusKey = question.focus || 'Genel';
+  const f = KNOWLEDGE.focuses[focusKey] || { correct: 0, wrong: 0 };
+  if (correct) f.correct += 1; else f.wrong += 1;
+  KNOWLEDGE.focuses[focusKey] = f;
+  saveKnowledge();
+}
+
+function memoryWeightedPick(list) {
+  // Weighted random selection: weight defaults to 1 for unseen items
+  if (!KNOWLEDGE) loadKnowledge();
+  if (!list.length) return null;
+  const weights = list.map(q => {
+    const item = KNOWLEDGE.items[questionId(q)];
+    return item ? item.weight : 1.0;
+  });
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < list.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return list[i];
+  }
+  return list[list.length - 1];
+}
+
+function memoryQueue(limit = 5) {
+  if (!KNOWLEDGE) loadKnowledge();
+  return Object.entries(KNOWLEDGE.items)
+    .map(([id, it]) => ({ id, ...it }))
+    .filter(it => it.wrong > 0 && it.weight > 1.1)
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, limit);
+}
+
+function hardestFocuses(limit = 4) {
+  if (!KNOWLEDGE) loadKnowledge();
+  return Object.entries(KNOWLEDGE.focuses)
+    .map(([focus, s]) => {
+      const total = s.correct + s.wrong;
+      const acc = total > 0 ? s.correct / total : 1;
+      return { focus, correct: s.correct, wrong: s.wrong, total, acc };
+    })
+    .filter(f => f.total > 0)
+    .sort((a, b) => a.acc - b.acc || b.wrong - a.wrong)
+    .slice(0, limit);
+}
+
+function focusBreakdown() {
+  if (!KNOWLEDGE) loadKnowledge();
+  return Object.entries(KNOWLEDGE.focuses)
+    .map(([focus, s]) => {
+      const total = s.correct + s.wrong;
+      return { focus, correct: s.correct, wrong: s.wrong, total, acc: total > 0 ? s.correct / total : 0 };
+    })
+    .sort((a, b) => b.total - a.total);
+}
+
+function pendingPromptFor(item) {
+  // Resolve prompt by id (stripping the "q:" prefix + slice match)
+  const fragment = item.id.slice(2);
+  const q = RUNNER_QUESTIONS.find(rq => rq.prompt.startsWith(fragment));
+  return q ? q.prompt : fragment;
+}
+
+function renderMemory() {
+  if (!KNOWLEDGE) loadKnowledge();
+  const total = KNOWLEDGE.totalCorrect + KNOWLEDGE.totalWrong;
+  const acc = total > 0 ? Math.round((KNOWLEDGE.totalCorrect / total) * 100) : 0;
+  const seen = Object.keys(KNOWLEDGE.items).length;
+  const queueSize = memoryQueue(99).length;
+  const summary = document.getElementById('memory-summary');
+  if (summary) {
+    summary.innerHTML = [
+      ['Toplam Yanıt', total.toLocaleString()],
+      ['Doğru', KNOWLEDGE.totalCorrect.toLocaleString()],
+      ['Yanlış', KNOWLEDGE.totalWrong.toLocaleString()],
+      ['Başarı', acc + '%'],
+      ['Tanışılan Soru', seen.toLocaleString()],
+      ['Tekrar Kuyruğu', queueSize.toLocaleString()],
+    ].map(([label, value]) => '<div class="stat-tile"><b>' + value + '</b><span>' + label + '</span></div>').join('');
+  }
+  const topicEl = document.getElementById('memory-topic-list');
+  if (topicEl) {
+    const rows = focusBreakdown();
+    topicEl.innerHTML = rows.length ? rows.map(r => {
+      const pct = Math.round(r.acc * 100);
+      return '<div class="memory-row">'
+        + '<span class="mem-label">' + escapeHtml(r.focus) + '</span>'
+        + '<span class="mem-meta"><span class="mem-stat-good">' + r.correct + '</span> / <span class="mem-stat-bad">' + r.wrong + '</span> · ' + pct + '%</span>'
+        + '<div class="memory-bar"><span style="width:' + pct + '%"></span></div>'
+        + '</div>';
+    }).join('') : '<div class="memory-row empty">Henüz veri yok — bir koşu tamamla.</div>';
+  }
+  const hardEl = document.getElementById('memory-hardest-list');
+  if (hardEl) {
+    const rows = hardestFocuses();
+    hardEl.innerHTML = rows.length ? rows.map(r => {
+      const pct = Math.round(r.acc * 100);
+      return '<div class="memory-row">'
+        + '<span class="mem-label">' + escapeHtml(r.focus) + '</span>'
+        + '<span class="mem-meta">' + pct + '% · ' + r.wrong + ' yanlış</span>'
+        + '</div>';
+    }).join('') : '<div class="memory-row empty">Henüz zorlanılan konu yok.</div>';
+  }
+  const queueEl = document.getElementById('memory-queue-list');
+  if (queueEl) {
+    const rows = memoryQueue(5);
+    queueEl.innerHTML = rows.length ? rows.map(r => {
+      return '<div class="memory-row">'
+        + '<span class="mem-label">' + escapeHtml(pendingPromptFor(r)) + '</span>'
+        + '<span class="mem-meta">' + escapeHtml(r.focus || '') + ' · ağırlık ' + r.weight.toFixed(1) + '</span>'
+        + '</div>';
+    }).join('') : '<div class="memory-row empty">Tüm konular dengelendi. Hâlâ yeni sorular gelmeye devam edecek.</div>';
+  }
+}
+
+function openMemory() {
+  if (!KNOWLEDGE) loadKnowledge();
+  renderMemory();
+  showOverlay('memory');
+}
+
+function resetKnowledge() {
+  KNOWLEDGE = { items: {}, focuses: {}, totalCorrect: 0, totalWrong: 0, sessionsStarted: 0 };
+  saveKnowledge();
+  renderMemory();
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
 function setMode(mode) {
   GAME_STATE.mode = mode;
   if (mode === 'playing') showOverlay(null);
@@ -2358,6 +2629,15 @@ function sentencesForChapter(ch) {
 
 function nextQuestion() {
   const list = questionsForChapter(GAME_STATE.chapter);
+  // 60% weighted by memory (spaced repetition), 40% sequential — so the player still sees variety
+  // and the wrong-answered set surfaces more often without dominating the experience.
+  if (Math.random() < 0.6) {
+    const picked = memoryWeightedPick(list);
+    if (picked) {
+      GAME_STATE.questionPointer[GAME_STATE.chapter] += 1;
+      return picked;
+    }
+  }
   const pointer = GAME_STATE.questionPointer[GAME_STATE.chapter] % list.length;
   GAME_STATE.questionPointer[GAME_STATE.chapter] += 1;
   return list[pointer];
@@ -2589,6 +2869,7 @@ function resolveLaneChoice() {
 function applyConceptFeedback(correct, question) {
   GAME_STATE.answeredTotal += 1;
   GAME_STATE.chapterAnswers += 1;
+  recordQuestionOutcome(question, correct);
   if (correct) {
     GAME_STATE.correctTotal += 1;
     GAME_STATE.chapterCorrect += 1;
@@ -4770,6 +5051,19 @@ document.getElementById('shop-screen').addEventListener('click', (e) => {
 
 loadShop();
 updateTitleWallet();
+
+// Knowledge memory UI
+document.getElementById('open-memory-btn').addEventListener('click', openMemory);
+document.getElementById('close-memory-btn').addEventListener('click', () => {
+  showOverlay('title');
+});
+document.getElementById('reset-memory-btn').addEventListener('click', () => {
+  if (confirm('Tüm öğrenme geçmişin silinsin mi? Bu işlem geri alınamaz.')) {
+    resetKnowledge();
+  }
+});
+
+loadKnowledge();
 loadAssets();
 resizeCanvas();
 draw();
