@@ -293,6 +293,71 @@ button {
   margin-top: 6px;
 }
 
+/* Slow-motion question state: bigger, higher contrast, glowing */
+.prompt-panel.slowmo {
+  top: 18%;
+  width: min(960px, calc(100vw - 36px));
+  padding: 22px 30px;
+  background:
+    linear-gradient(135deg, rgba(0, 245, 255, .14), rgba(255, 46, 154, .10)),
+    rgba(8, 10, 18, .92);
+  border: 1.5px solid rgba(0, 245, 255, .55);
+  box-shadow:
+    0 0 0 1px rgba(255, 46, 154, .22),
+    0 0 40px rgba(0, 245, 255, .35),
+    0 28px 80px rgba(0, 0, 0, .55);
+  animation: slowmoPop .35s cubic-bezier(.2, .9, .3, 1.2) both;
+}
+
+.prompt-panel.slowmo .prompt-kicker {
+  color: #00f5ff;
+  font-size: clamp(13px, 1.4vw, 16px);
+  letter-spacing: 2.4px;
+  text-shadow: 0 0 14px rgba(0, 245, 255, .55);
+  margin-bottom: 10px;
+}
+
+.prompt-panel.slowmo .prompt-text {
+  font-family: 'Rajdhani', 'Chakra Petch', 'Orbitron', sans-serif;
+  font-weight: 800;
+  font-size: clamp(22px, 3.4vw, 36px);
+  line-height: 1.28;
+  color: #f5fbff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, .7), 0 0 22px rgba(0, 245, 255, .25);
+  letter-spacing: .3px;
+}
+
+.prompt-panel.slowmo .prompt-hint {
+  color: #c5d5e6;
+  font-size: clamp(13px, 1.4vw, 16px);
+  margin-top: 12px;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, .55);
+}
+
+@keyframes slowmoPop {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-12px) scale(.94); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+/* Slow-motion vignette: subtle, behind UI, signals time-warp */
+body.slowmo-active::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 17;
+  background:
+    radial-gradient(ellipse at 50% 45%, transparent 38%, rgba(0, 0, 0, .42) 100%),
+    linear-gradient(180deg, rgba(0, 245, 255, .04), transparent 40%, rgba(255, 46, 154, .05));
+  mix-blend-mode: normal;
+  animation: slowmoFade .35s ease both;
+}
+
+@keyframes slowmoFade {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
 .toast {
   position: absolute;
   z-index: 26;
@@ -682,6 +747,16 @@ h2 {
   .prompt-kicker { font-size: 10px; letter-spacing: 1.2px; margin-bottom: 3px; }
   .prompt-text { font-size: clamp(13px, 3.6vw, 16px); line-height: 1.25; }
   .prompt-hint { font-size: 11px; line-height: 1.3; margin-top: 3px; }
+
+  /* Mobile slow-mo: compact but still bigger than normal */
+  .prompt-panel.slowmo {
+    top: 70px;
+    padding: 12px 14px;
+    width: calc(100vw - 16px);
+  }
+  .prompt-panel.slowmo .prompt-kicker { font-size: 11px; letter-spacing: 1.4px; margin-bottom: 6px; }
+  .prompt-panel.slowmo .prompt-text { font-size: clamp(16px, 4.6vw, 22px); line-height: 1.28; }
+  .prompt-panel.slowmo .prompt-hint { font-size: 12px; margin-top: 7px; }
 
   .sentence-panel {
     top: 132px;
@@ -1839,7 +1914,10 @@ function resetRun() {
     correctTotal: 0,
     sentencesCompleted: 0,
     wrongAnswers: [],
+    timeScale: 1,
   });
+  UI.prompt.classList.remove('show', 'slowmo');
+  document.body.classList.remove('slowmo-active');
   startSentence();
   updateHUD();
   showToast('Bölüm 1: Actor ve Use Case', 'info');
@@ -2009,7 +2087,8 @@ function spawnGateChallenge() {
     passed: false,
   };
   GAME_STATE.gateUnlocked = false;
-  UI.prompt.classList.add('show');
+  UI.prompt.classList.add('show', 'slowmo');
+  document.body.classList.add('slowmo-active');
   UI.promptKicker.textContent = question.focus;
   UI.promptText.textContent = question.prompt;
   UI.promptHint.textContent = promptHintFor(question);
@@ -2080,6 +2159,9 @@ function resolveLaneChoice() {
   const gate = GAME_STATE.gate;
   if (!gate || gate.resolved) return;
   gate.resolved = true;
+  // Exit slow-motion once the answer is locked in
+  UI.prompt.classList.remove('slowmo');
+  document.body.classList.remove('slowmo-active');
   const choseCorrect = GAME_STATE.lane === gate.correctLane - 1;
   applyConceptFeedback(choseCorrect, gate.question, gate.options[gate.correctLane]);
 }
@@ -2202,7 +2284,8 @@ function completeChapter() {
     return;
   }
   setMode('chapter');
-  UI.prompt.classList.remove('show');
+  UI.prompt.classList.remove('show', 'slowmo');
+  document.body.classList.remove('slowmo-active');
   document.getElementById('chapter-eyebrow').textContent = 'Bölüm Geçildi';
   document.getElementById('chapter-title').textContent = ch.title;
   document.getElementById('chapter-copy').textContent =
@@ -2236,7 +2319,8 @@ function startNextChapter() {
 
 function finishRun() {
   setMode('final');
-  UI.prompt.classList.remove('show');
+  UI.prompt.classList.remove('show', 'slowmo');
+  document.body.classList.remove('slowmo-active');
   document.getElementById('final-stats').innerHTML = [
     ['Skor', GAME_STATE.score.toLocaleString()],
     ['XP', GAME_STATE.xp.toLocaleString()],
@@ -2448,11 +2532,19 @@ function updateHUD() {
 }
 
 function update(dt, now) {
-  const seconds = dt / 1000;
+  const realSeconds = dt / 1000;
   const ch = currentChapter();
-  const gateSlow = GAME_STATE.gate && GAME_STATE.gate.question.kind === 'story' && hasSlowStory() ? .64 : 1;
+  // Slow-motion when a gate is approaching but not yet resolved: gives the player 3x time to read & choose.
+  // Story gates with the slow-mo upgrade get an even deeper slow-down.
+  const gateActive = GAME_STATE.gate && !GAME_STATE.gate.resolved;
+  const deepSlow = gateActive && GAME_STATE.gate.question.kind === 'story' && hasSlowStory();
+  const targetTimeScale = deepSlow ? 0.22 : (gateActive ? 1 / 3 : 1);
+  // Smoothly ease toward target so transitions feel cinematic
+  if (typeof GAME_STATE.timeScale !== 'number') GAME_STATE.timeScale = 1;
+  GAME_STATE.timeScale += (targetTimeScale - GAME_STATE.timeScale) * Math.min(1, realSeconds * 6);
+  const seconds = realSeconds * GAME_STATE.timeScale;
   GAME_STATE.speed = Math.min(ch.speedMax, GAME_STATE.speed + seconds * 9);
-  const travel = GAME_STATE.speed * gateSlow * seconds;
+  const travel = GAME_STATE.speed * seconds;
   GAME_STATE.distance += travel;
   GAME_STATE.elapsed += seconds;
   GAME_STATE.laneVisual += (GAME_STATE.lane - GAME_STATE.laneVisual) * Math.min(1, seconds * 12);
@@ -2525,7 +2617,8 @@ function update(dt, now) {
     if (!GAME_STATE.gate.resolved && GAME_STATE.gate.z <= RESOLVE_Z) resolveLaneChoice();
     if (GAME_STATE.gate.z < REMOVE_Z) {
       GAME_STATE.gate = null;
-      UI.prompt.classList.remove('show');
+      UI.prompt.classList.remove('show', 'slowmo');
+      document.body.classList.remove('slowmo-active');
     }
   }
 
