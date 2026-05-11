@@ -1953,6 +1953,8 @@ function resetRun() {
     sentencesCompleted: 0,
     wrongAnswers: [],
     timeScale: 1,
+    lastGroundedAt: performance.now(),
+    jumpBufferedAt: 0,
   });
   UI.prompt.classList.remove('show', 'slowmo');
   document.body.classList.remove('slowmo-active');
@@ -2502,13 +2504,20 @@ function moveLane(dir) {
   }
 }
 
+const COYOTE_MS = 110;     // grace window after leaving the ground for a "ground" jump
+const JUMP_BUFFER_MS = 160; // press jump slightly before landing -> auto-jump on landing
+
 function jump() {
   if (GAME_STATE.mode !== 'playing') return;
-  // Ground jump
-  if (GAME_STATE.jump <= 2) {
+  const now = performance.now();
+  // Ground jump (with coyote-time grace)
+  const grounded = GAME_STATE.jump <= 2;
+  const coyoteOk = !grounded && (now - (GAME_STATE.lastGroundedAt || 0)) <= COYOTE_MS && GAME_STATE.jumpVelocity <= 0;
+  if (grounded || coyoteOk) {
     GAME_STATE.jumpVelocity = 720;
     GAME_STATE.jumpsLeft = 1; // one air-jump remaining
     GAME_STATE.jumpHeld = true;
+    GAME_STATE.jumpBufferedAt = 0;
     sfx('jump');
     return;
   }
@@ -2517,13 +2526,17 @@ function jump() {
     GAME_STATE.jumpVelocity = 620;
     GAME_STATE.jumpsLeft = 0;
     GAME_STATE.jumpHeld = true;
+    GAME_STATE.jumpBufferedAt = 0;
     spawnParticles(
       GAME_STATE.width * .5 + GAME_STATE.laneVisual * 80,
       GAME_STATE.height * .68 - GAME_STATE.jump,
       currentChapter().color, 14, 60,
     );
     sfx('jump');
+    return;
   }
+  // No jumps available -> buffer the press for the next landing
+  GAME_STATE.jumpBufferedAt = now;
 }
 
 function releaseJump() {
@@ -2586,6 +2599,7 @@ function update(dt, now) {
   GAME_STATE.distance += travel;
   GAME_STATE.elapsed += seconds;
   GAME_STATE.laneVisual += (GAME_STATE.lane - GAME_STATE.laneVisual) * Math.min(1, seconds * 12);
+  const wasGrounded = GAME_STATE.jump <= 2 && GAME_STATE.jumpVelocity <= 0;
   GAME_STATE.jump = Math.max(0, GAME_STATE.jump + GAME_STATE.jumpVelocity * seconds);
   if (GAME_STATE.jump > 0 || GAME_STATE.jumpVelocity > 0) {
     // Slightly lower gravity while jump is held → softer arc / variable height
@@ -2596,7 +2610,16 @@ function update(dt, now) {
       GAME_STATE.jumpVelocity = 0;
       GAME_STATE.jumpsLeft = 2; // refresh both jumps on landing
       GAME_STATE.jumpHeld = false;
+      GAME_STATE.lastGroundedAt = now;
+      // Consume a buffered jump press if it's still fresh
+      if (GAME_STATE.jumpBufferedAt && (now - GAME_STATE.jumpBufferedAt) <= JUMP_BUFFER_MS) {
+        GAME_STATE.jumpBufferedAt = 0;
+        jump();
+      }
     }
+  } else if (wasGrounded) {
+    // Continuously refresh grounded timestamp while on the ground (used for coyote-time)
+    GAME_STATE.lastGroundedAt = now;
   }
   GAME_STATE.slideTime = Math.max(0, GAME_STATE.slideTime - dt);
   GAME_STATE.invulnerable = Math.max(0, GAME_STATE.invulnerable - dt);
@@ -3261,6 +3284,41 @@ function drawObstacle(obj) {
   const h = (isHurdle ? 36 : isScanner ? 64 : 110) * p.scale;
   const y = isScanner ? p.y - 110 * p.scale : p.y - h * .5;
   const pulse = Math.sin(GAME_STATE.elapsed * 6) * .25 + .75;
+
+  // Action-cue marker on the ground in front of the obstacle (only when approaching)
+  // Tells the player WHEN/WHERE to jump or slide. Hidden if already past its cue zone.
+  if ((isHurdle || isScanner) && obj.z > 60 && obj.z < 520 && !obj.hit) {
+    const cueZ = obj.z + 80; // a bit closer to camera than the obstacle itself
+    const cueP = perspective(cueZ);
+    const cueX = laneToX(obj.lane, cueZ);
+    const cueColor = isHurdle ? '#ff2e9a' : '#00f5ff';
+    const cuePulse = Math.sin(GAME_STATE.elapsed * 8) * .25 + .75;
+    ctx.save();
+    ctx.translate(cueX, cueP.y);
+    // Glowing oval on the ground
+    ctx.shadowColor = cueColor;
+    ctx.shadowBlur = 22 * cueP.scale * cuePulse;
+    ctx.fillStyle = hexToRgba(cueColor, .22 * cuePulse);
+    ctx.beginPath();
+    ctx.ellipse(0, 4 * cueP.scale, 34 * cueP.scale, 9 * cueP.scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Inner brighter ring
+    ctx.strokeStyle = hexToRgba(cueColor, .85);
+    ctx.lineWidth = Math.max(1.2, 1.8 * cueP.scale);
+    ctx.beginPath();
+    ctx.ellipse(0, 4 * cueP.scale, 26 * cueP.scale, 6 * cueP.scale, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    // Action arrow + label
+    ctx.shadowBlur = 10 * cueP.scale;
+    ctx.fillStyle = cueColor;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = '900 ' + Math.max(11, 14 * cueP.scale) + 'px Audiowide, sans-serif';
+    ctx.fillText(isHurdle ? '▲' : '▼', 0, -2 * cueP.scale);
+    ctx.font = '700 ' + Math.max(8, 10 * cueP.scale) + 'px Rajdhani, sans-serif';
+    ctx.fillText(isHurdle ? 'ATLA' : 'KAY', 0, 14 * cueP.scale);
+    ctx.restore();
+  }
 
   // Shadow
   ctx.save();
