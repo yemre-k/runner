@@ -368,6 +368,15 @@ button {
   100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 }
 
+/* During slow-motion the question is the only active task. Fade the
+   sentence-builder panel out to prevent overlap with the enlarged prompt. */
+body.slowmo-active .sentence-panel {
+  opacity: 0.18;
+  transform: translateX(-50%) translateY(-6px);
+  filter: blur(1.5px);
+  transition: opacity .25s ease, transform .25s ease, filter .25s ease;
+}
+
 /* Slow-motion vignette: subtle, behind UI, signals time-warp */
 body.slowmo-active::after {
   content: '';
@@ -1251,7 +1260,7 @@ h2 {
       <div class="hud-value" id="hud-chapter">Requirement Runner</div>
     </div>
     <div class="hud-block">
-      <div class="hud-label">Skor</div>
+      <div class="hud-label">Score</div>
       <div class="hud-value amber" id="hud-score">0</div>
     </div>
     <div class="hud-block">
@@ -1259,43 +1268,43 @@ h2 {
       <div class="hud-value pink" id="hud-xp">0</div>
     </div>
     <div class="hud-block">
-      <div class="hud-label">Para</div>
+      <div class="hud-label">Coins</div>
       <div class="hud-value green" id="hud-coins">0</div>
     </div>
     <div class="hud-block">
-      <div class="hud-label">Seri</div>
+      <div class="hud-label">Streak</div>
       <div class="hud-value amber" id="hud-streak">0</div>
     </div>
     <div class="hud-block">
-      <div class="hud-label">Can</div>
+      <div class="hud-label">Lives</div>
       <div class="hud-value" id="hud-lives">3</div>
     </div>
     <div class="hud-block">
-      <div class="hud-label">Güç</div>
-      <div class="hud-value" id="hud-power">Hazır</div>
+      <div class="hud-label">Power</div>
+      <div class="hud-value" id="hud-power">Ready</div>
     </div>
   </div>
 
-  <button class="guide-link" id="guide-btn" type="button">Rehber</button>
+  <button class="guide-link" id="guide-btn" type="button">Guide</button>
   <button class="pause-btn" id="pause-btn" type="button">II</button>
-  <button class="music-btn" id="music-btn" type="button" title="Müzik aç/kapat">🔊</button>
+  <button class="music-btn" id="music-btn" type="button" title="Toggle music">🔊</button>
   <!-- Compact floating action icons (mobile) -->
   <div class="mobile-actions" id="mobile-actions">
-    <button class="mini-btn" id="hud-guide-btn" type="button" aria-label="Rehber">📚</button>
-    <button class="mini-btn" id="hud-pause-btn" type="button" aria-label="Duraklat">⏸</button>
+    <button class="mini-btn" id="hud-guide-btn" type="button" aria-label="Guide">📚</button>
+    <button class="mini-btn" id="hud-pause-btn" type="button" aria-label="Pause">⏸</button>
   </div>
   <audio id="bg-music" src="monume-synthwave-retro-80s-519247.mp3" loop preload="auto"></audio>
 
   <section class="prompt-panel" id="prompt-panel">
-    <div class="prompt-kicker" id="prompt-kicker">Sıradaki kapı</div>
+    <div class="prompt-kicker" id="prompt-kicker">Next gate</div>
     <div class="prompt-text" id="prompt-text"></div>
     <div class="prompt-hint" id="prompt-hint"></div>
   </section>
 
   <section class="sentence-panel" id="sentence-panel">
     <div class="sentence-top">
-      <div class="sentence-kicker" id="sentence-concept">Kelime Rotası</div>
-      <div class="sentence-tip" id="sentence-tip">Pistte çıkan tek kelimeyi topla, tanım cümlesini kur.</div>
+      <div class="sentence-kicker" id="sentence-concept">Word Route</div>
+      <div class="sentence-tip" id="sentence-tip">Collect the lone word on the track and build the definition sentence.</div>
     </div>
     <div class="sentence-slots" id="sentence-slots"></div>
   </section>
@@ -1306,44 +1315,45 @@ h2 {
   <section class="overlay show" id="title-screen">
     <div class="modal title-modal">
       <img class="title-hero" src="_f56aba2a-7200-485c-99ef-9f9baf2b93c5.jpg" alt="" onerror="this.style.display='none'">
-      <div class="eyebrow">Sistem Analizi Arcade</div>
+      <div class="eyebrow">System Analysis Arcade</div>
       <h1 class="gradient-title">Requirement Runner</h1>
       <p class="lead">
-        Üç şeritte koş, hatalı gereksinimlerden kaç, doğru modelleme kapısını seç
-        ve pistteki kelimeleri toplayarak kavram tanımlarını cümle cümle kur.
+        Run across three lanes, dodge faulty requirements, pick the correct
+        modeling gate, and collect words on the track to build concept definitions
+        sentence by sentence.
       </p>
       <div class="concept-grid">
-        <div class="concept-tile"><strong>Bölüm 1</strong><span>Actor ve Use Case ayrımı. Kim kullanıyor, sistem ne yapıyor?</span></div>
-        <div class="concept-tile"><strong>Bölüm 2</strong><span>User Story, include ve extend. Gereksinimi doğru cümleye çevir.</span></div>
-        <div class="concept-tile"><strong>Bölüm 3</strong><span>Sistem sınırı ve karma modelleme. Tüm kavramları hız altında birleştir.</span></div>
+        <div class="concept-tile"><strong>Chapter 1</strong><span>Actor vs Use Case. Who uses it, what does the system do?</span></div>
+        <div class="concept-tile"><strong>Chapter 2</strong><span>User Story, include and extend. Turn the requirement into the right sentence.</span></div>
+        <div class="concept-tile"><strong>Chapter 3</strong><span>System boundary and mixed modeling. Combine every concept at full speed.</span></div>
       </div>
       <div class="title-wallet" id="title-wallet" aria-live="polite"></div>
       <div class="actions">
-        <button class="btn primary" id="start-btn" type="button">Koşuyu Başlat</button>
-        <button class="btn" id="open-shop-btn" type="button">Mağaza</button>
-        <button class="btn" id="open-memory-btn" type="button">Bilgi Hafızası</button>
-        <button class="btn" id="open-guide-btn" type="button">Kavram Rehberi</button>
+        <button class="btn primary" id="start-btn" type="button">Start Run</button>
+        <button class="btn" id="open-shop-btn" type="button">Shop</button>
+        <button class="btn" id="open-memory-btn" type="button">Knowledge Memory</button>
+        <button class="btn" id="open-guide-btn" type="button">Concept Guide</button>
       </div>
     </div>
   </section>
 
   <section class="overlay" id="shop-screen">
     <div class="modal">
-      <div class="close-row"><button class="btn" id="close-shop-btn" type="button">Kapat</button></div>
-      <div class="eyebrow">Synthwave Mağazası</div>
-      <h2>Koşu Yükseltmeleri</h2>
-      <div class="shop-wallet">Cüzdan: <b id="shop-wallet-amount">0</b> para</div>
+      <div class="close-row"><button class="btn" id="close-shop-btn" type="button">Close</button></div>
+      <div class="eyebrow">Synthwave Shop</div>
+      <h2>Run Upgrades</h2>
+      <div class="shop-wallet">Wallet: <b id="shop-wallet-amount">0</b> coins</div>
       <div class="shop-section">
-        <div class="shop-section-title">Karakter Skinleri</div>
+        <div class="shop-section-title">Character Skins</div>
         <div class="shop-grid" id="shop-skins"></div>
       </div>
       <div class="shop-section">
-        <div class="shop-section-title">İz Efektleri</div>
+        <div class="shop-section-title">Trail Effects</div>
         <div class="shop-grid" id="shop-trails"></div>
       </div>
       <div class="shop-section">
-        <div class="shop-section-title">Sarf Malzemeleri</div>
-        <p class="shop-hint">Sarf malzemeleri her koşunun başında otomatik kullanılır.</p>
+        <div class="shop-section-title">Consumables</div>
+        <p class="shop-hint">Consumables are spent automatically at the start of each run.</p>
         <div class="shop-grid" id="shop-consumables"></div>
       </div>
     </div>
@@ -1351,83 +1361,83 @@ h2 {
 
   <section class="overlay" id="memory-screen">
     <div class="modal">
-      <div class="close-row"><button class="btn" id="close-memory-btn" type="button">Kapat</button></div>
-      <div class="eyebrow">Bilgi Hafızası</div>
-      <h2>Öğrenme İstatistikleri</h2>
-      <p class="lead">Bilgi hafızası tüm koşularda biriken doğru/yanlış kayıtlarını saklar. Yanlış cevapladığın sorular bir sonraki koşuda öncelikli olarak karşına çıkar.</p>
+      <div class="close-row"><button class="btn" id="close-memory-btn" type="button">Close</button></div>
+      <div class="eyebrow">Knowledge Memory</div>
+      <h2>Learning Statistics</h2>
+      <p class="lead">Knowledge Memory stores your accumulated correct/wrong answers across all runs. Questions you missed are prioritized in the next run.</p>
       <div class="memory-summary" id="memory-summary"></div>
       <div class="memory-section">
-        <div class="memory-section-title">Konu Bazlı Başarım</div>
+        <div class="memory-section-title">Performance by Topic</div>
         <div class="memory-list" id="memory-topic-list"></div>
       </div>
       <div class="memory-section">
-        <div class="memory-section-title">En Zorlandığın Konular</div>
+        <div class="memory-section-title">Your Hardest Topics</div>
         <div class="memory-list" id="memory-hardest-list"></div>
       </div>
       <div class="memory-section">
-        <div class="memory-section-title">Tekrar Sırası (sıradaki koşuda öne çıkacak)</div>
+        <div class="memory-section-title">Review Queue (boosted next run)</div>
         <div class="memory-list" id="memory-queue-list"></div>
       </div>
       <div class="actions">
-        <button class="btn warn" id="reset-memory-btn" type="button">Hafızayı Sıfırla</button>
+        <button class="btn warn" id="reset-memory-btn" type="button">Reset Memory</button>
       </div>
     </div>
   </section>
 
   <section class="overlay" id="chapter-screen">
     <div class="modal small">
-      <div class="eyebrow" id="chapter-eyebrow">Bölüm</div>
+      <div class="eyebrow" id="chapter-eyebrow">Chapter</div>
       <h2 id="chapter-title"></h2>
       <p class="lead" id="chapter-copy"></p>
       <div class="actions">
-        <button class="btn primary" id="chapter-continue" type="button">Devam Et</button>
+        <button class="btn primary" id="chapter-continue" type="button">Continue</button>
       </div>
     </div>
   </section>
 
   <section class="overlay" id="pause-screen">
     <div class="modal small">
-      <div class="eyebrow" id="pause-eyebrow">Koşu Duraklatıldı</div>
-      <h2 id="pause-title">Nefeslen</h2>
+      <div class="eyebrow" id="pause-eyebrow">Run Paused</div>
+      <h2 id="pause-title">Catch your breath</h2>
       <p class="lead" id="pause-copy"></p>
       <div class="actions">
-        <button class="btn primary" id="resume-btn" type="button">Devam Et</button>
-        <button class="btn warn" id="restart-btn" type="button">Yeniden Başlat</button>
+        <button class="btn primary" id="resume-btn" type="button">Resume</button>
+        <button class="btn warn" id="restart-btn" type="button">Restart</button>
       </div>
     </div>
   </section>
 
   <section class="overlay" id="guide-screen">
     <div class="modal">
-      <div class="close-row"><button class="btn" id="close-guide-btn" type="button">Kapat</button></div>
-      <div class="eyebrow">Kavram Rehberi</div>
-      <h2>Koşu Ne Öğretiyor?</h2>
+      <div class="close-row"><button class="btn" id="close-guide-btn" type="button">Close</button></div>
+      <div class="eyebrow">Concept Guide</div>
+      <h2>What does this run teach?</h2>
       <div class="concept-grid">
-        <div class="concept-tile"><strong>Actor</strong><span>Sistemi kullanan kişi, rol veya dış sistemdir. Soru: kim kullanıyor?</span></div>
-        <div class="concept-tile"><strong>Use Case</strong><span>Aktörün sistem içinde ulaşmak istediği hedef veya eylemdir.</span></div>
-        <div class="concept-tile"><strong>User Story</strong><span>Bir rol olarak, bir eylem istiyorum, böylece bir fayda elde ederim.</span></div>
-        <div class="concept-tile"><strong>include</strong><span>Zorunlu bağımlılıktır. Ana use case çalışınca her zaman gerçekleşir.</span></div>
-        <div class="concept-tile"><strong>extend</strong><span>Opsiyonel veya koşullu davranıştır. Sadece bazı durumlarda eklenir.</span></div>
-        <div class="concept-tile"><strong>Boundary</strong><span>Aktörler sistemin dışında, use case'ler sistem sınırının içindedir.</span></div>
+        <div class="concept-tile"><strong>Actor</strong><span>The person, role, or external system that uses the system. Question: who uses it?</span></div>
+        <div class="concept-tile"><strong>Use Case</strong><span>A goal or action the actor wants to achieve inside the system.</span></div>
+        <div class="concept-tile"><strong>User Story</strong><span>As a role, I want an action, so that I gain a benefit.</span></div>
+        <div class="concept-tile"><strong>include</strong><span>A mandatory dependency. Always runs whenever the base use case runs.</span></div>
+        <div class="concept-tile"><strong>extend</strong><span>Optional or conditional behavior. Added only in certain situations.</span></div>
+        <div class="concept-tile"><strong>Boundary</strong><span>Actors sit outside the system; use cases sit inside the system boundary.</span></div>
       </div>
     </div>
   </section>
 
   <section class="overlay" id="final-screen">
     <div class="modal">
-      <div class="eyebrow">Koşu Tamamlandı</div>
-      <h2>Shadow Analyst Sertifikası</h2>
-      <p class="lead">Actor, use case, user story, include, extend ve sistem sınırı kavramlarını hem seçim kapılarıyla hem de kelime toplayarak kurulan tanım cümleleriyle çalıştın.</p>
+      <div class="eyebrow">Run Complete</div>
+      <h2>Shadow Analyst Certificate</h2>
+      <p class="lead">You drilled actor, use case, user story, include, extend, and the system boundary both through gate choices and by collecting words to build definition sentences.</p>
       <div class="final-stats" id="final-stats"></div>
       <div id="learning-summary"></div>
       <div class="concept-grid">
-        <div class="concept-tile"><strong>Actor</strong><span>Sistemle etkileşen rolleri ve dış sistemleri ayırdın.</span></div>
-        <div class="concept-tile"><strong>Use Case</strong><span>Sistem davranışını kişi/rol ve belirsiz ifadelerden ayırdın.</span></div>
-        <div class="concept-tile"><strong>İlişkiler</strong><span>Zorunlu davranış için include, opsiyonel davranış için extend kullandın.</span></div>
+        <div class="concept-tile"><strong>Actor</strong><span>You distinguished interacting roles and external systems.</span></div>
+        <div class="concept-tile"><strong>Use Case</strong><span>You separated system behavior from people/roles and vague phrases.</span></div>
+        <div class="concept-tile"><strong>Relations</strong><span>You used include for mandatory behavior and extend for optional behavior.</span></div>
       </div>
       <div id="highscore-table"></div>
       <div class="actions">
-        <button class="btn primary" id="play-again-btn" type="button">Tekrar Oyna</button>
+        <button class="btn primary" id="play-again-btn" type="button">Play Again</button>
       </div>
     </div>
   </section>
@@ -1468,8 +1478,8 @@ const UI = {
 
 const RUNNER_CHAPTERS = [
   {
-    title: 'Bölüm 1: Actor ve Use Case',
-    focus: 'Sistemi kimin kullandığını ve sistemin ne yaptığını ayır.',
+    title: 'Chapter 1: Actor and Use Case',
+    focus: 'Tell apart who uses the system from what the system does.',
     color: '#ff2e9a',
     road: '#1a0b2e',
     skyA: '#2d1b69',
@@ -1479,8 +1489,8 @@ const RUNNER_CHAPTERS = [
     speedMax: 575,
   },
   {
-    title: 'Bölüm 2: User Story ve İlişkiler',
-    focus: 'User story kur, include ve extend farkını yakala.',
+    title: 'Chapter 2: User Story and Relations',
+    focus: 'Build user stories; spot the difference between include and extend.',
     color: '#8338ec',
     road: '#15042a',
     skyA: '#1a1a2e',
@@ -1490,8 +1500,8 @@ const RUNNER_CHAPTERS = [
     speedMax: 650,
   },
   {
-    title: 'Bölüm 3: Tam Use Case Modeli',
-    focus: 'Sistem sınırı, aktör, use case ve ilişki kararlarını birleştir.',
+    title: 'Chapter 3: Complete Use Case Model',
+    focus: 'Combine system boundary, actor, use case, and relation decisions.',
     color: '#00f5ff',
     road: '#0a0e1a',
     skyA: '#0a0e1a',
@@ -1506,297 +1516,297 @@ const RUNNER_QUESTIONS = [
   {
     ch: 0,
     kind: 'actor-usecase',
-    focus: 'Aktör Tanıma',
-    prompt: 'Fırın stok sistemi: AKTÖR hangisidir?',
-    hint: 'Aktör, yazılımı kullanan kişi, rol veya dış sistemdir.',
+    focus: 'Spotting the Actor',
+    prompt: 'Bakery stock system: which one is the ACTOR?',
+    hint: 'An actor is a person, role, or external system that uses the software.',
     options: [
-      { label: 'Fırıncı', type: 'actor', ok: true },
-      { label: 'Stok Görüntüle', type: 'usecase' },
-      { label: 'Stok Güncelle', type: 'usecase' },
+      { label: 'Baker', type: 'actor', ok: true },
+      { label: 'View Stock', type: 'usecase' },
+      { label: 'Update Stock', type: 'usecase' },
     ],
-    explain: 'Fırıncı, stok sistemini kullanan bir roldür.',
+    explain: 'The Baker is a role that uses the stock system.',
   },
   {
     ch: 0,
     kind: 'actor-usecase',
-    focus: 'Use Case Tanıma',
-    prompt: 'Kütüphane teslimat sistemi: USE CASE hangisidir?',
-    hint: 'Use Case, sistemin içinde gerçekleştirilen bir hedef veya eylemdir.',
+    focus: 'Spotting the Use Case',
+    prompt: 'Library delivery system: which one is the USE CASE?',
+    hint: 'A use case is a goal or action carried out inside the system.',
     options: [
-      { label: 'Kütüphane Üyesi', type: 'actor' },
-      { label: 'Online Kitap Ödünç Al', type: 'usecase', ok: true },
-      { label: 'Kargo Servisi', type: 'actor' },
+      { label: 'Library Member', type: 'actor' },
+      { label: 'Borrow Book Online', type: 'usecase', ok: true },
+      { label: 'Shipping Service', type: 'actor' },
     ],
-    explain: 'Online Kitap Ödünç Al, üyenin yapmak istediği eylemdir.',
+    explain: 'Borrow Book Online is the action the member wants to perform.',
   },
   {
     ch: 0,
     kind: 'actor-usecase',
-    focus: 'Dış Aktör',
-    prompt: 'Online ödeme akışı: dış AKTÖR hangisidir?',
-    hint: 'Dış sistemler de sisteminizle etkileşime girdiğinde aktör olabilir.',
+    focus: 'External Actor',
+    prompt: 'Online payment flow: which one is the EXTERNAL ACTOR?',
+    hint: 'External systems that interact with yours can also be actors.',
     options: [
-      { label: 'Ödeme Geçidi', type: 'actor', ok: true },
-      { label: 'Ödemeyi Onayla', type: 'usecase' },
-      { label: 'Makbuz Oluştur', type: 'usecase' },
+      { label: 'Payment Gateway', type: 'actor', ok: true },
+      { label: 'Confirm Payment', type: 'usecase' },
+      { label: 'Generate Receipt', type: 'usecase' },
     ],
-    explain: 'Ödeme Geçidi sistemin dışındadır ama sistemle iletişim kurar.',
+    explain: 'The Payment Gateway lives outside the system but talks to it.',
   },
   {
     ch: 0,
     kind: 'boundary',
-    focus: 'Sistem Sınırı',
-    prompt: 'Sistem sınırının İÇİNDE olan hangisidir?',
-    hint: 'Aktörler dışarıda kalır. Use case\'ler sınırın içine girer.',
+    focus: 'System Boundary',
+    prompt: 'Which one sits INSIDE the system boundary?',
+    hint: 'Actors stay outside. Use cases go inside the boundary.',
     options: [
-      { label: 'Müşteri', type: 'actor' },
-      { label: 'Ürün Ara', type: 'usecase', ok: true },
-      { label: 'Banka Servisi', type: 'actor' },
+      { label: 'Customer', type: 'actor' },
+      { label: 'Search Product', type: 'usecase', ok: true },
+      { label: 'Bank Service', type: 'actor' },
     ],
-    explain: 'Ürün Ara, sistem sınırının içindeki bir davranıştır.',
+    explain: 'Search Product is a behavior inside the system boundary.',
   },
   {
     ch: 0,
     kind: 'actor-usecase',
-    focus: 'Aktör Tanıma',
-    prompt: 'Spor salonu kayıt sistemi: AKTÖR hangisidir?',
-    hint: 'Sistemle kimin etkileştiğine bak, sistemin ne yaptığına değil.',
+    focus: 'Spotting the Actor',
+    prompt: 'Gym sign-up system: which one is the ACTOR?',
+    hint: 'Look at who interacts with the system, not what the system does.',
     options: [
-      { label: 'E-posta Doğrula', type: 'usecase' },
-      { label: 'Salon Üyesi', type: 'actor', ok: true },
-      { label: 'Hesap Oluştur', type: 'usecase' },
+      { label: 'Verify Email', type: 'usecase' },
+      { label: 'Gym Member', type: 'actor', ok: true },
+      { label: 'Create Account', type: 'usecase' },
     ],
-    explain: 'Salon Üyesi, kayıt sistemini kullanan roldür.',
+    explain: 'The Gym Member is the role that uses the sign-up system.',
   },
   {
     ch: 1,
     kind: 'story',
-    focus: 'User Story: Aktör',
-    prompt: 'User story: "Bir ___ olarak, online kitap talep etmek istiyorum..."',
-    hint: 'İlk boşluk değer alan roldür.',
+    focus: 'User Story: Actor',
+    prompt: 'User story: "As a ___, I want to request books online..."',
+    hint: 'The first blank is the role getting the value.',
     options: [
-      { label: 'Kütüphane Üyesi', role: 'actor', ok: true },
-      { label: 'Kitap Veritabanı', role: 'system' },
-      { label: 'Kargo Etiketi', role: 'object' },
+      { label: 'Library Member', role: 'actor', ok: true },
+      { label: 'Book Database', role: 'system' },
+      { label: 'Shipping Label', role: 'object' },
     ],
-    explain: 'Kütüphane Üyesi, hikâyedeki aktördür.',
+    explain: 'The Library Member is the actor in this story.',
   },
   {
     ch: 1,
     kind: 'story',
-    focus: 'User Story: Eylem',
-    prompt: 'User story: "Bir Kütüphane Üyesi olarak, ___ istiyorum..."',
-    hint: 'Eylem belirli ve sisteme yönelik olmalıdır.',
+    focus: 'User Story: Action',
+    prompt: 'User story: "As a Library Member, I want to ___..."',
+    hint: 'The action must be specific and aimed at the system.',
     options: [
-      { label: 'mutlu olmak', role: 'vague' },
-      { label: 'online kitap talep etmek', role: 'action', ok: true },
-      { label: 'uygulamayı modern yapmak', role: 'vague' },
+      { label: 'be happy', role: 'vague' },
+      { label: 'request books online', role: 'action', ok: true },
+      { label: 'make the app modern', role: 'vague' },
     ],
-    explain: 'Online kitap talep etmek net bir eylemdir.',
+    explain: '"Request books online" is a clear, concrete action.',
   },
   {
     ch: 1,
     kind: 'story',
-    focus: 'User Story: Fayda',
-    prompt: 'User story: "...böylece ___."',
-    hint: 'Fayda, aktörün eylemi neden istediğini açıklar.',
+    focus: 'User Story: Benefit',
+    prompt: 'User story: "...so that ___."',
+    hint: 'The benefit explains why the actor wants the action.',
     options: [
-      { label: 'kütüphaneye gitmeden ödünç alabilirim', role: 'benefit', ok: true },
-      { label: 'veritabanı mavi olur', role: 'style' },
-      { label: 'sistemde bir modül olur', role: 'spec' },
+      { label: 'I can borrow without going to the library', role: 'benefit', ok: true },
+      { label: 'the database becomes blue', role: 'style' },
+      { label: 'the system gets a module', role: 'spec' },
     ],
-    explain: 'Fayda, üye için değeri açıklar.',
+    explain: 'The benefit captures the value for the member.',
   },
   {
     ch: 1,
     kind: 'relationship',
-    focus: 'include Kapısı',
-    prompt: 'Her kayıt mutlaka e-posta doğrulaması yapmalıdır. İlişki türünü seç.',
-    hint: 'Zorunlu ve her seferinde olan demek include demektir.',
+    focus: 'include Gate',
+    prompt: 'Every sign-up must run email verification. Pick the relationship type.',
+    hint: 'Mandatory and always-on means include.',
     options: [
       { label: 'include', relation: 'include', ok: true },
       { label: 'extend', relation: 'extend' },
-      { label: 'bağlantı yok', relation: 'none' },
+      { label: 'no relation', relation: 'none' },
     ],
-    explain: 'E-posta doğrulaması zorunludur, bu yüzden Kayıt onu include eder.',
+    explain: 'Email verification is mandatory, so Sign-up includes it.',
   },
   {
     ch: 1,
     kind: 'relationship',
-    focus: 'extend Kapısı',
-    prompt: 'Mesajı şifrele: sadece gönderici gizlilik modu seçtiğinde çalışır.',
-    hint: 'İsteğe bağlı veya koşullu davranış extend demektir.',
+    focus: 'extend Gate',
+    prompt: 'Encrypt Message: runs only when the sender enables privacy mode.',
+    hint: 'Optional or conditional behavior means extend.',
     options: [
       { label: 'include', relation: 'include' },
       { label: 'extend', relation: 'extend', ok: true },
-      { label: 'aktör', relation: 'actor' },
+      { label: 'actor', relation: 'actor' },
     ],
-    explain: 'Mesajı Şifrele, Mesaj Gönder\'i extend eder çünkü sadece bazen olur.',
+    explain: 'Encrypt Message extends Send Message because it only happens sometimes.',
   },
   {
     ch: 1,
     kind: 'story',
-    focus: 'Geçersiz Story',
-    prompt: 'GEÇERSİZ user story hangisidir?',
-    hint: 'Geçerli bir story net aktör, eylem ve fayda içerir.',
+    focus: 'Invalid Story',
+    prompt: 'Which one is an INVALID user story?',
+    hint: 'A valid story has a clear actor, action, and benefit.',
     options: [
-      { label: 'Admin olarak hesap sil, düzeni koru', role: 'valid' },
-      { label: 'Sistem her şeyi hızlı yapsın', role: 'invalid', ok: true },
-      { label: 'Müşteri olarak sipariş geçmişi gör', role: 'valid' },
+      { label: 'As an Admin, delete an account to keep order', role: 'valid' },
+      { label: 'The system should do everything fast', role: 'invalid', ok: true },
+      { label: 'As a Customer, view order history', role: 'valid' },
     ],
-    explain: 'Bu ifade belirsizdir ve net bir aktör-fayda yapısı yoktur.',
+    explain: 'This sentence is vague and lacks a clear actor/benefit shape.',
   },
   {
     ch: 2,
     kind: 'mixed',
-    focus: 'Çoklu Aktör',
-    prompt: 'Masraf sistemi: AKTÖR hangisidir?',
-    hint: 'Çalışan, Yönetici ve Muhasebeci sistemi kullanan rollerdir.',
+    focus: 'Multiple Actors',
+    prompt: 'Expense system: which one is the ACTOR?',
+    hint: 'Employee, Manager, and Accountant are roles that use the system.',
     options: [
-      { label: 'Masraf Onayla', type: 'usecase' },
-      { label: 'Yönetici', type: 'actor', ok: true },
-      { label: 'Rapor Oluştur', type: 'usecase' },
+      { label: 'Approve Expense', type: 'usecase' },
+      { label: 'Manager', type: 'actor', ok: true },
+      { label: 'Generate Report', type: 'usecase' },
     ],
-    explain: 'Yönetici, masraf sistemini kullanan bir roldür.',
+    explain: 'The Manager is a role using the expense system.',
   },
   {
     ch: 2,
     kind: 'mixed',
-    focus: 'Kurumsal Use Case',
-    prompt: 'Masraf sistemi: USE CASE hangisidir?',
-    hint: 'Bir kişi değil, sistem davranışı ara.',
+    focus: 'Enterprise Use Case',
+    prompt: 'Expense system: which one is the USE CASE?',
+    hint: 'Look for a system behavior, not a person.',
     options: [
-      { label: 'Muhasebeci', type: 'actor' },
-      { label: 'Çalışan', type: 'actor' },
-      { label: 'Makbuz Yükle', type: 'usecase', ok: true },
+      { label: 'Accountant', type: 'actor' },
+      { label: 'Employee', type: 'actor' },
+      { label: 'Upload Receipt', type: 'usecase', ok: true },
     ],
-    explain: 'Makbuz Yükle, sistemde gerçekleştirilen bir eylemdir.',
+    explain: 'Upload Receipt is an action performed inside the system.',
   },
   {
     ch: 2,
     kind: 'relationship',
-    focus: 'İlişki Kombinasyonu',
-    prompt: 'Giriş her zaman oturum kaydeder; 2FA sadece etkinse çalışır.',
-    hint: 'Önce zorunlu, sonra opsiyonel.',
+    focus: 'Relationship Combo',
+    prompt: 'Login always logs the session; 2FA only runs when enabled.',
+    hint: 'First mandatory, then optional.',
     options: [
-      { label: 'include sonra extend', relation: 'combo', ok: true },
-      { label: 'extend sonra include', relation: 'combo' },
-      { label: 'extend sonra extend', relation: 'combo' },
+      { label: 'include then extend', relation: 'combo', ok: true },
+      { label: 'extend then include', relation: 'combo' },
+      { label: 'extend then extend', relation: 'combo' },
     ],
-    explain: 'Oturum Kaydı include\'dır; 2FA extend\'dir.',
+    explain: 'Session Logging is included; 2FA is an extend.',
   },
   {
     ch: 2,
     kind: 'boundary',
-    focus: 'Sınır Kontrolü',
-    prompt: 'Use case diyagramı: sistem sınırının DIŞINDA kalan hangisidir?',
-    hint: 'Aktörler sistem kutusunun dışındadır.',
+    focus: 'Boundary Check',
+    prompt: 'Use case diagram: which one stays OUTSIDE the system boundary?',
+    hint: 'Actors sit outside the system box.',
     options: [
-      { label: 'Sistem Yöneticisi', type: 'actor', ok: true },
-      { label: 'Kullanıcı Yönet', type: 'usecase' },
-      { label: 'Sistem Denetimi', type: 'usecase' },
+      { label: 'System Administrator', type: 'actor', ok: true },
+      { label: 'Manage Users', type: 'usecase' },
+      { label: 'System Audit', type: 'usecase' },
     ],
-    explain: 'Sistem Yöneticisi bir aktördür, bu yüzden sınırın dışında kalır.',
+    explain: 'The System Administrator is an actor, so it stays outside the boundary.',
   },
   {
     ch: 2,
     kind: 'mixed',
-    focus: 'Rapor Modelleme',
-    prompt: 'Gizli iletişim sistemi: Lider\'in use case\'i hangisidir?',
-    hint: 'Liderler üst düzey bilgi ve raporları okur.',
+    focus: 'Report Modeling',
+    prompt: 'Confidential comms system: which is the Leader\'s use case?',
+    hint: 'Leaders read high-level info and reports.',
     options: [
-      { label: 'Üye Raporu Görüntüle', type: 'usecase', ok: true },
-      { label: 'Gölge Üye', type: 'actor' },
-      { label: 'Ödeme Geçidi', type: 'actor' },
+      { label: 'View Member Report', type: 'usecase', ok: true },
+      { label: 'Shadow Member', type: 'actor' },
+      { label: 'Payment Gateway', type: 'actor' },
     ],
-    explain: 'Üye Raporu Görüntüle, Lider odaklı use case\'dir.',
+    explain: 'View Member Report is the Leader-focused use case.',
   },
   {
     ch: 2,
     kind: 'story',
-    focus: 'User Story Kalitesi',
-    prompt: 'En güçlü user story eylemi hangisidir?',
-    hint: 'Belirli eylemler belirsiz dileklerden üstündür.',
+    focus: 'User Story Quality',
+    prompt: 'Which is the strongest user-story action?',
+    hint: 'Specific actions beat vague wishes.',
     options: [
-      { label: 'güzel yap', role: 'vague' },
-      { label: 'sipariş geçmişini görüntüle', role: 'action', ok: true },
-      { label: 'bir sisteme sahip ol', role: 'vague' },
+      { label: 'make it nice', role: 'vague' },
+      { label: 'view order history', role: 'action', ok: true },
+      { label: 'have a system', role: 'vague' },
     ],
-    explain: 'Sipariş geçmişini görüntüle belirli ve test edilebilirdir.',
+    explain: '"View order history" is specific and testable.',
   },
   {
     ch: 2,
     kind: 'relationship',
-    focus: 'Son İlişki',
-    prompt: 'Makbuz taraması onaydan önce her zaman kopya kontrolü yapar.',
-    hint: 'Her zaman çalışıyorsa include\'dur.',
+    focus: 'Final Relationship',
+    prompt: 'Receipt scan always runs a duplicate check before approval.',
+    hint: 'If it always runs, it\'s an include.',
     options: [
       { label: 'extend', relation: 'extend' },
       { label: 'include', relation: 'include', ok: true },
-      { label: 'aktör', relation: 'actor' },
+      { label: 'actor', relation: 'actor' },
     ],
-    explain: 'Kopya kontrolü zorunludur, bu yüzden include\'dur.',
+    explain: 'The duplicate check is mandatory, so it\'s an include.',
   },
 ];
 
 const LESSON_SENTENCES = [
   {
     ch: 0,
-    concept: 'USE CASE TANIMI',
-    words: ['Use case', 'aktörün', 'sistemde', 'ulaşmak', 'istediği', 'hedefi', 'anlatır.'],
-    decoys: ['kişi', 'dışında', 'renk', 'tesadüf', 'veritabanı'],
-    completion: 'Use case bir kişinin adı değil, sistem içinde yapılan hedef/eylemdir.',
+    concept: 'USE CASE DEFINITION',
+    words: ['A use case', 'describes', 'the goal', 'an actor', 'wants to', 'reach inside', 'the system.'],
+    decoys: ['person', 'outside', 'color', 'random', 'database'],
+    completion: 'A use case is not a person\'s name; it is a goal/action inside the system.',
   },
   {
     ch: 0,
-    concept: 'ACTOR TANIMI',
-    words: ['Actor', 'sistemi', 'kullanan', 'kişi,', 'rol', 'veya', 'dış sistemdir.'],
-    decoys: ['buton', 'sayfa', 'fonksiyon', 'renk', 'rapor'],
-    completion: 'Actor sistemin dışında durur ve sistemle etkileşir.',
+    concept: 'ACTOR DEFINITION',
+    words: ['An actor', 'is a person,', 'a role,', 'or an', 'external', 'system that', 'uses the system.'],
+    decoys: ['button', 'page', 'function', 'color', 'report'],
+    completion: 'An actor sits outside the system and interacts with it.',
   },
   {
     ch: 1,
-    concept: 'USER STORY FORMÜLÜ',
-    words: ['Bir', 'aktör', 'olarak,', 'bir eylem', 'istiyorum,', 'böylece', 'fayda sağlarım.'],
-    decoys: ['hızlı', 'modül', 'sunucu', 'tasarım', 'belirsiz'],
-    completion: 'İyi user story aktör, eylem ve faydayı net söyler.',
+    concept: 'USER STORY FORMULA',
+    words: ['As an', 'actor,', 'I want', 'an action,', 'so that', 'I gain', 'a benefit.'],
+    decoys: ['fast', 'module', 'server', 'design', 'vague'],
+    completion: 'A good user story states the actor, the action, and the benefit clearly.',
   },
   {
     ch: 1,
-    concept: 'INCLUDE KURALI',
-    words: ['include', 'zorunlu', 'adımdır;', 'her', 'çalışmada', 'mutlaka', 'gerçekleşir.'],
-    decoys: ['bazen', 'isteğe bağlı', 'aktör', 'renk', 'dışında'],
-    completion: 'Her zaman çalışan alt davranış include ile modellenir.',
+    concept: 'INCLUDE RULE',
+    words: ['include', 'is a', 'mandatory step', 'that happens', 'every time', 'the base', 'use case runs.'],
+    decoys: ['sometimes', 'optional', 'actor', 'color', 'outside'],
+    completion: 'Always-on sub-behavior is modeled with include.',
   },
   {
     ch: 1,
-    concept: 'EXTEND KURALI',
-    words: ['extend', 'opsiyonel', 'davranıştır;', 'sadece', 'koşul', 'olursa', 'eklenir.'],
-    decoys: ['zorunlu', 'her zaman', 'aktör', 'stok', 'sınır'],
-    completion: 'Bazen çalışan ek senaryo extend ile modellenir.',
+    concept: 'EXTEND RULE',
+    words: ['extend', 'is optional', 'behavior;', 'it is', 'only added', 'when a', 'condition holds.'],
+    decoys: ['mandatory', 'always', 'actor', 'stock', 'boundary'],
+    completion: 'Occasional add-on scenarios are modeled with extend.',
   },
   {
     ch: 2,
-    concept: 'SİSTEM SINIRI',
-    words: ['Aktörler', 'sınırın', 'dışında;', 'use case’ler', 'sistemin', 'içinde', 'gösterilir.'],
-    decoys: ['tam tersi', 'rastgele', 'renkli', 'puan', 'koşucu'],
-    completion: 'Diyagramda sınır, içerideki sistem davranışını dış aktörlerden ayırır.',
+    concept: 'SYSTEM BOUNDARY',
+    words: ['Actors stay', 'outside the', 'boundary;', 'use cases', 'are shown', 'inside the', 'system.'],
+    decoys: ['inverted', 'random', 'colorful', 'score', 'runner'],
+    completion: 'In the diagram, the boundary separates internal system behavior from external actors.',
   },
   {
     ch: 2,
-    concept: 'MODELLEME ÖZETİ',
-    words: ['Önce', 'aktörleri', 'bul,', 'sonra', 'use case’leri', 'ilişkilerle', 'bağla.'],
-    decoys: ['renk seç', 'gizle', 'rastgele', 'sadece kod', 'sil'],
-    completion: 'Sağlam modelleme kim, ne yapıyor ve hangi ilişki var sorularıyla başlar.',
+    concept: 'MODELING RECAP',
+    words: ['First find', 'the actors,', 'then link', 'use cases', 'together with', 'the right', 'relationships.'],
+    decoys: ['pick a color', 'hide', 'random', 'code only', 'delete'],
+    completion: 'Solid modeling starts with who, what they do, and which relationship connects them.',
   },
 ];
 
 const POWERUPS = {
   tablet: { label: 'Tablet', color: '#3b7f95', duration: 9000 },
-  storypen: { label: 'Kalem', color: '#9a7042', duration: 8000 },
-  shield: { label: 'Kalkan', color: '#4f8b5f', duration: 0 },
+  storypen: { label: 'Pen', color: '#9a7042', duration: 8000 },
+  shield: { label: 'Shield', color: '#4f8b5f', duration: 0 },
   hologram: { label: 'Hologram', color: '#697382', duration: 10000 },
-  quantum: { label: 'Kuantum', color: '#c28a32', duration: 9500 },
+  quantum: { label: 'Quantum', color: '#c28a32', duration: 9500 },
 };
 
 const FAR_Z = 2200;
@@ -2175,20 +2185,20 @@ function closeGuide() {
 const SHOP_KEY = 'shadow_analyst_shop_v1';
 const SHOP_CATALOG = {
   skins: [
-    { id: 'default', name: 'Klasik', desc: 'Pistin standart neon koşucusu.', price: 0, color: null },
-    { id: 'magenta', name: 'Magenta Sürücü', desc: 'Sıcak pembe ışıltıyla parlar.', price: 100, color: '#ff2e9a' },
-    { id: 'cyan',    name: 'Cyan Hayalet', desc: 'Soğuk turkuaz neon kaplama.',     price: 200, color: '#00f5ff' },
-    { id: 'golden',  name: 'Altın Analist', desc: 'Çok zorlu koşulara hak edilmiş altın yansıma.', price: 400, color: '#ffd166' },
+    { id: 'default', name: 'Classic', desc: 'The track\'s standard neon runner.', price: 0, color: null },
+    { id: 'magenta', name: 'Magenta Driver', desc: 'Glows with a hot pink shimmer.', price: 100, color: '#ff2e9a' },
+    { id: 'cyan',    name: 'Cyan Ghost', desc: 'Cool turquoise neon coating.',       price: 200, color: '#00f5ff' },
+    { id: 'golden',  name: 'Golden Analyst', desc: 'A golden sheen earned from the hardest runs.', price: 400, color: '#ffd166' },
   ],
   trails: [
-    { id: 'default', name: 'Standart İz', desc: 'Pembe-cyan çift hatlı klasik iz.', price: 0, colors: null },
-    { id: 'pink',    name: 'Pembe Şerit', desc: 'Saf magenta, daha kalın hat.',       price: 80,  colors: ['#ff2e9a'] },
-    { id: 'cyan',    name: 'Cyan Şerit',  desc: 'Saf cyan, daha kalın hat.',          price: 160, colors: ['#00f5ff'] },
-    { id: 'rainbow', name: 'Spektrum',     desc: 'Magenta, mor ve cyan değişen iz.',   price: 300, colors: ['#ff2e9a', '#8338ec', '#00f5ff'] },
+    { id: 'default', name: 'Standard Trail', desc: 'Classic pink-cyan double-line trail.', price: 0, colors: null },
+    { id: 'pink',    name: 'Pink Stripe', desc: 'Pure magenta, thicker line.',          price: 80,  colors: ['#ff2e9a'] },
+    { id: 'cyan',    name: 'Cyan Stripe', desc: 'Pure cyan, thicker line.',             price: 160, colors: ['#00f5ff'] },
+    { id: 'rainbow', name: 'Spectrum',    desc: 'Alternating magenta, violet, and cyan.', price: 300, colors: ['#ff2e9a', '#8338ec', '#00f5ff'] },
   ],
   consumables: [
-    { id: 'extraLife', name: 'Ekstra Can', desc: 'Koşuya +1 can ile başla.',           price: 50 },
-    { id: 'shield',    name: 'Başlangıç Kalkanı', desc: 'Koşunun başında 1 kalkan.',  price: 40 },
+    { id: 'extraLife', name: 'Extra Life', desc: 'Start the run with +1 life.',     price: 50 },
+    { id: 'shield',    name: 'Starting Shield', desc: '1 shield at the start of the run.', price: 40 },
   ],
 };
 
@@ -2228,7 +2238,7 @@ function addCoinsToWallet(amount) {
 function updateTitleWallet() {
   if (!SHOP) loadShop();
   const el = document.getElementById('title-wallet');
-  if (el) el.textContent = '💎 Cüzdan: ' + SHOP.wallet.toLocaleString() + ' para';
+  if (el) el.textContent = '💎 Wallet: ' + SHOP.wallet.toLocaleString() + ' coins';
   const w = document.getElementById('shop-wallet-amount');
   if (w) w.textContent = SHOP.wallet.toLocaleString();
 }
@@ -2268,7 +2278,7 @@ function buyShopItem(category, id) {
     SHOP.consumables[id] = (SHOP.consumables[id] || 0) + 1;
     saveShop();
     renderShop();
-    showToast(item.name + ' alındı.', 'ok');
+    showToast(item.name + ' purchased.', 'ok');
     return true;
   }
   const ownedList = category === 'skins' ? SHOP.ownedSkins : SHOP.ownedTrails;
@@ -2278,7 +2288,7 @@ function buyShopItem(category, id) {
   ownedList.push(id);
   saveShop();
   renderShop();
-  showToast(item.name + ' kilitlendi açıldı.', 'ok');
+  showToast(item.name + ' equipped.', 'ok');
   return true;
 }
 
@@ -2314,13 +2324,13 @@ function renderShopGroup(containerId, category) {
     if (category === 'consumables') {
       const stock = SHOP.consumables[item.id] || 0;
       const canBuy = SHOP.wallet >= item.price;
-      btn = '<button class="shop-btn primary" data-shop="buy" data-cat="' + category + '" data-id="' + item.id + '"' + (canBuy ? '' : ' disabled') + '>Satın Al</button>';
+      btn = '<button class="shop-btn primary" data-shop="buy" data-cat="' + category + '" data-id="' + item.id + '"' + (canBuy ? '' : ' disabled') + '>Buy</button>';
       return '<div class="' + classes + '">' +
         '<div class="shop-name">' + item.name + '</div>' +
         '<div class="shop-desc">' + item.desc + '</div>' +
         '<div class="shop-bottom">' +
-          '<span class="shop-price">' + item.price + ' para</span>' +
-          (stock > 0 ? '<span class="shop-stock">Stok: ' + stock + '</span>' : '') +
+          '<span class="shop-price">' + item.price + ' coins</span>' +
+          (stock > 0 ? '<span class="shop-stock">Stock: ' + stock + '</span>' : '') +
           btn +
         '</div></div>';
     }
@@ -2330,15 +2340,15 @@ function renderShopGroup(containerId, category) {
     else if (owned) classes += ' owned';
     if (item.price === 0 || owned) {
       btn = equipped
-        ? '<button class="shop-btn equipped-tag">Kullanılıyor</button>'
-        : '<button class="shop-btn" data-shop="equip" data-cat="' + category + '" data-id="' + item.id + '">Kullan</button>';
+        ? '<button class="shop-btn equipped-tag">Equipped</button>'
+        : '<button class="shop-btn" data-shop="equip" data-cat="' + category + '" data-id="' + item.id + '">Equip</button>';
     } else {
       const canBuy = SHOP.wallet >= item.price;
-      btn = '<button class="shop-btn primary" data-shop="buy" data-cat="' + category + '" data-id="' + item.id + '"' + (canBuy ? '' : ' disabled') + '>Satın Al</button>';
+      btn = '<button class="shop-btn primary" data-shop="buy" data-cat="' + category + '" data-id="' + item.id + '"' + (canBuy ? '' : ' disabled') + '>Buy</button>';
     }
     const priceTag = item.price === 0
-      ? '<span class="shop-price free">Bedava</span>'
-      : (owned ? '<span class="shop-price free">Sahip</span>' : '<span class="shop-price">' + item.price + ' para</span>');
+      ? '<span class="shop-price free">Free</span>'
+      : (owned ? '<span class="shop-price free">Owned</span>' : '<span class="shop-price">' + item.price + ' coins</span>');
     return '<div class="' + classes + '">' +
       swatch +
       '<div class="shop-name">' + item.name + '</div>' +
@@ -2485,12 +2495,12 @@ function renderMemory() {
   const summary = document.getElementById('memory-summary');
   if (summary) {
     summary.innerHTML = [
-      ['Toplam Yanıt', total.toLocaleString()],
-      ['Doğru', KNOWLEDGE.totalCorrect.toLocaleString()],
-      ['Yanlış', KNOWLEDGE.totalWrong.toLocaleString()],
-      ['Başarı', acc + '%'],
-      ['Tanışılan Soru', seen.toLocaleString()],
-      ['Tekrar Kuyruğu', queueSize.toLocaleString()],
+      ['Total Answers', total.toLocaleString()],
+      ['Correct', KNOWLEDGE.totalCorrect.toLocaleString()],
+      ['Wrong', KNOWLEDGE.totalWrong.toLocaleString()],
+      ['Accuracy', acc + '%'],
+      ['Seen Questions', seen.toLocaleString()],
+      ['Review Queue', queueSize.toLocaleString()],
     ].map(([label, value]) => '<div class="stat-tile"><b>' + value + '</b><span>' + label + '</span></div>').join('');
   }
   const topicEl = document.getElementById('memory-topic-list');
@@ -2503,7 +2513,7 @@ function renderMemory() {
         + '<span class="mem-meta"><span class="mem-stat-good">' + r.correct + '</span> / <span class="mem-stat-bad">' + r.wrong + '</span> · ' + pct + '%</span>'
         + '<div class="memory-bar"><span style="width:' + pct + '%"></span></div>'
         + '</div>';
-    }).join('') : '<div class="memory-row empty">Henüz veri yok — bir koşu tamamla.</div>';
+    }).join('') : '<div class="memory-row empty">No data yet — finish a run.</div>';
   }
   const hardEl = document.getElementById('memory-hardest-list');
   if (hardEl) {
@@ -2512,9 +2522,9 @@ function renderMemory() {
       const pct = Math.round(r.acc * 100);
       return '<div class="memory-row">'
         + '<span class="mem-label">' + escapeHtml(r.focus) + '</span>'
-        + '<span class="mem-meta">' + pct + '% · ' + r.wrong + ' yanlış</span>'
+        + '<span class="mem-meta">' + pct + '% · ' + r.wrong + ' wrong</span>'
         + '</div>';
-    }).join('') : '<div class="memory-row empty">Henüz zorlanılan konu yok.</div>';
+    }).join('') : '<div class="memory-row empty">No struggling topics yet.</div>';
   }
   const queueEl = document.getElementById('memory-queue-list');
   if (queueEl) {
@@ -2522,9 +2532,9 @@ function renderMemory() {
     queueEl.innerHTML = rows.length ? rows.map(r => {
       return '<div class="memory-row">'
         + '<span class="mem-label">' + escapeHtml(pendingPromptFor(r)) + '</span>'
-        + '<span class="mem-meta">' + escapeHtml(r.focus || '') + ' · ağırlık ' + r.weight.toFixed(1) + '</span>'
+        + '<span class="mem-meta">' + escapeHtml(r.focus || '') + ' · weight ' + r.weight.toFixed(1) + '</span>'
         + '</div>';
-    }).join('') : '<div class="memory-row empty">Tüm konular dengelendi. Hâlâ yeni sorular gelmeye devam edecek.</div>';
+    }).join('') : '<div class="memory-row empty">All topics balanced. New questions will keep coming.</div>';
   }
 }
 
@@ -2603,15 +2613,15 @@ function resetRun() {
   const extras = consumeStartOfRun();
   if (extras.lives > 0) {
     GAME_STATE.lives += extras.lives;
-    showToast('Ekstra can +' + extras.lives, 'ok');
+    showToast('Extra life +' + extras.lives, 'ok');
   }
   if (extras.shields > 0) {
     GAME_STATE.shields += extras.shields;
-    showToast('Başlangıç kalkanı +' + extras.shields, 'ok');
+    showToast('Starting shield +' + extras.shields, 'ok');
   }
   startSentence();
   updateHUD();
-  showToast('Bölüm 1: Actor ve Use Case', 'info');
+  showToast('Chapter 1: Actor and Use Case', 'info');
   showOverlay(null);
 }
 
@@ -2666,8 +2676,8 @@ function updateSentencePanel() {
   if (!sentence) return;
   UI.sentenceConcept.textContent = sentence.data.concept;
   UI.sentenceTip.textContent = sentence.index < sentence.data.words.length
-    ? 'Sıradaki kelime pistte tek başına çıkacak. Yakala, cümleyi sırayla kur. Kaçırırsan -' + MISSED_WORD_PENALTY + ' para.'
-    : 'Cümle tamamlandı, yeni tanım hazırlanıyor.';
+    ? 'The next word will appear on the track alone. Catch it and build the sentence in order. Miss it and lose -' + MISSED_WORD_PENALTY + ' coins.'
+    : 'Sentence complete — a new definition is being prepared.';
   UI.sentenceSlots.innerHTML = sentence.data.words.map((word, index) => {
     const filled = index < sentence.collected.length;
     const next = index === sentence.index;
@@ -2797,11 +2807,11 @@ function spawnGateChallenge() {
 function promptHintFor(question) {
   if (hasLaneHint()) {
     const gate = GAME_STATE.gate;
-    if (gate) return 'Sinyal aktif: doğru şerit pistte parlıyor.';
+    if (gate) return 'Signal active: the correct lane is glowing.';
   }
   if (hasPreview()) {
     const next = questionsForChapter(GAME_STATE.chapter)[GAME_STATE.questionPointer[GAME_STATE.chapter] % questionsForChapter(GAME_STATE.chapter).length];
-    return question.hint + ' Sıradaki odak: ' + next.focus + '.';
+    return question.hint + ' Next focus: ' + next.focus + '.';
   }
   return question.hint;
 }
@@ -2880,7 +2890,7 @@ function applyConceptFeedback(correct, question) {
     GAME_STATE.xp += 45 + GAME_STATE.chapter * 10;
     GAME_STATE.coins += 8 + GAME_STATE.chapter * 2;
     sfx('correct');
-    showToast('Doğru: ' + question.explain, 'ok');
+    showToast('Correct: ' + question.explain, 'ok');
   } else {
     GAME_STATE.streak = 0;
     GAME_STATE.score = Math.max(0, GAME_STATE.score - 220);
@@ -2890,7 +2900,7 @@ function applyConceptFeedback(correct, question) {
       focus: question.focus,
     });
     sfx('wrong');
-    showToast('Kaçtı: ' + question.explain, 'no');
+    showToast('Missed: ' + question.explain, 'no');
     handleCrash('wrong-gate');
   }
   updateHUD();
@@ -2923,7 +2933,7 @@ function resolveWordPickup(obj) {
   GAME_STATE.score += 180 + GAME_STATE.sentence.index * 14;
   GAME_STATE.xp += 12;
   GAME_STATE.coins += 3;
-  showToast('Kelime yakalandı: ' + word, 'ok');
+  showToast('Word caught: ' + word, 'ok');
   if (GAME_STATE.sentence.index >= GAME_STATE.sentence.data.words.length) {
     completeSentence();
   } else {
@@ -2942,14 +2952,14 @@ function missWord(obj) {
   GAME_STATE.score = Math.max(0, GAME_STATE.score - 140);
   if (GAME_STATE.coins >= MISSED_WORD_PENALTY) {
     GAME_STATE.coins -= MISSED_WORD_PENALTY;
-    showToast('Kelime kaçtı: -' + MISSED_WORD_PENALTY + ' para. Sıradaki kelime tekrar geliyor.', 'no');
+    showToast('Word missed: -' + MISSED_WORD_PENALTY + ' coins. The same word will come back.', 'no');
     GAME_STATE.nextWord = 1.0;
     updateHUD();
     return;
   }
   GAME_STATE.coins = 0;
   updateHUD();
-  gameOver('Kelimeyi kaçırdın ve cezayı ödeyecek paran kalmadı.');
+  gameOver('You missed the word and ran out of coins to pay the penalty.');
 }
 
 function completeSentence() {
@@ -2960,10 +2970,10 @@ function completeSentence() {
   GAME_STATE.coins += 15;
   updateSentencePanel();
   sfx('sentence');
-  showToast('Cümle tamamlandı: ' + completed.completion, 'ok');
+  showToast('Sentence complete: ' + completed.completion, 'ok');
   GAME_STATE.gateUnlocked = true;
   GAME_STATE.nextGate = .75;
-  UI.sentenceTip.textContent = 'Cümle tamamlandı. Şimdi bu bilgiyi test eden soru kapısı geliyor.';
+  UI.sentenceTip.textContent = 'Sentence complete. A question gate testing this concept is up next.';
   setTimeout(() => {
     if (GAME_STATE.mode === 'playing' && GAME_STATE.gateUnlocked) spawnGateChallenge();
   }, 650);
@@ -2987,11 +2997,11 @@ function completeChapter() {
   setMode('chapter');
   UI.prompt.classList.remove('show', 'slowmo');
   document.body.classList.remove('slowmo-active');
-  document.getElementById('chapter-eyebrow').textContent = 'Bölüm Geçildi';
+  document.getElementById('chapter-eyebrow').textContent = 'Chapter Cleared';
   document.getElementById('chapter-title').textContent = ch.title;
   document.getElementById('chapter-copy').textContent =
-    GAME_STATE.chapterAnswers + ' modelleme kapısından ' + GAME_STATE.chapterCorrect +
-    ' tanesini doğru geçtin. Sıradaki bölge hızı artırıyor ve yeni kavramları karıştırıyor.';
+    'You cleared ' + GAME_STATE.chapterCorrect + ' of ' + GAME_STATE.chapterAnswers +
+    ' modeling gates correctly. The next zone ramps up speed and mixes in new concepts.';
   showOverlay('chapter');
 }
 
@@ -3026,12 +3036,12 @@ function finishRun() {
   const earned = GAME_STATE.coins;
   addCoinsToWallet(earned);
   document.getElementById('final-stats').innerHTML = [
-    ['Skor', GAME_STATE.score.toLocaleString()],
+    ['Score', GAME_STATE.score.toLocaleString()],
     ['XP', GAME_STATE.xp.toLocaleString()],
-    ['Para', earned.toLocaleString()],
-    ['En İyi Seri', GAME_STATE.bestStreak.toLocaleString()],
-    ['Cümle', GAME_STATE.sentencesCompleted.toLocaleString()],
-    ['Doğru', GAME_STATE.correctTotal + '/' + GAME_STATE.answeredTotal],
+    ['Coins', earned.toLocaleString()],
+    ['Best Streak', GAME_STATE.bestStreak.toLocaleString()],
+    ['Sentences', GAME_STATE.sentencesCompleted.toLocaleString()],
+    ['Correct', GAME_STATE.correctTotal + '/' + GAME_STATE.answeredTotal],
   ].map(([label, value]) => '<div class="stat-tile"><b>' + value + '</b><span>' + label + '</span></div>').join('');
   renderLearningSummary();
   saveHighScore(GAME_STATE.score);
@@ -3042,21 +3052,21 @@ function finishRun() {
 function renderLearningSummary() {
   const container = document.getElementById('learning-summary');
   if (GAME_STATE.wrongAnswers.length === 0) {
-    container.innerHTML = '<div class="learning-section"><div class="all-correct">Tebrikler! Tüm soruları doğru yanıtladın.</div></div>';
+    container.innerHTML = '<div class="learning-section"><div class="all-correct">Congratulations! You answered every question correctly.</div></div>';
     return;
   }
   const items = GAME_STATE.wrongAnswers.map(w =>
     '<div class="wrong-item"><b>' + w.focus + ':</b> ' + w.prompt +
-    '<br><span class="correct-answer">Doğru: ' + w.explain + '</span></div>'
+    '<br><span class="correct-answer">Correct: ' + w.explain + '</span></div>'
   ).join('');
-  container.innerHTML = '<div class="learning-section"><h3>Tekrar Et — Yanlış Yanıtlar</h3>' + items + '</div>';
+  container.innerHTML = '<div class="learning-section"><h3>Review — Wrong Answers</h3>' + items + '</div>';
 }
 
 function saveHighScore(score) {
   try {
     const key = 'shadow_analyst_scores';
     const stored = JSON.parse(localStorage.getItem(key) || '[]');
-    stored.push({ score, date: new Date().toLocaleDateString('tr-TR'), correct: GAME_STATE.correctTotal, total: GAME_STATE.answeredTotal });
+    stored.push({ score, date: new Date().toLocaleDateString('en-US'), correct: GAME_STATE.correctTotal, total: GAME_STATE.answeredTotal });
     stored.sort((a, b) => b.score - a.score);
     if (stored.length > 10) stored.length = 10;
     localStorage.setItem(key, JSON.stringify(stored));
@@ -3076,7 +3086,7 @@ function renderHighScores() {
         '<span>' + entry.correct + '/' + entry.total + '</span>' +
         '<span class="hs-date">' + entry.date + '</span></div>';
     }).join('');
-    container.innerHTML = '<div class="highscore-section"><h3>En Yüksek Skorlar</h3>' + rows + '</div>';
+    container.innerHTML = '<div class="highscore-section"><h3>High Scores</h3>' + rows + '</div>';
   } catch (e) { container.innerHTML = ''; }
 }
 
@@ -3086,12 +3096,12 @@ function activatePowerup(id) {
   GAME_STATE.coins += 5;
   if (id === 'shield') {
     GAME_STATE.shields = Math.min(3, GAME_STATE.shields + 1);
-    showToast('Kalkan hazır: sıradaki çarpışmayı emer.', 'info');
+    showToast('Shield ready: absorbs the next collision.', 'info');
   } else if (id === 'quantum') {
     GAME_STATE.shields = Math.min(3, GAME_STATE.shields + 1);
     GAME_STATE.activePower = id;
     GAME_STATE.powerUntil = performance.now() + power.duration;
-    showToast('Kuantum aktif: şerit sinyali ve kalkan birlikte.', 'info');
+    showToast('Quantum active: lane signal and shield together.', 'info');
   } else {
     GAME_STATE.activePower = id;
     GAME_STATE.powerUntil = performance.now() + power.duration;
@@ -3119,7 +3129,7 @@ function handleCrash(reason) {
   if (reason !== 'wrong-gate') sfx('crash');
   if (GAME_STATE.shields > 0) {
     GAME_STATE.shields -= 1;
-    showToast('Kalkan hatayı emdi.', 'info');
+    showToast('Shield absorbed the hit.', 'info');
     updateHUD();
     return;
   }
@@ -3127,9 +3137,9 @@ function handleCrash(reason) {
   GAME_STATE.speed = Math.max(currentChapter().speedStart * .86, GAME_STATE.speed - 80);
   updateHUD();
   if (GAME_STATE.lives <= 0) {
-    gameOver('Canların bitti.');
+    gameOver('You ran out of lives.');
   } else if (reason !== 'wrong-gate') {
-    showToast('Çarpışma atlatıldı. Koşuya devam.', 'no');
+    showToast('Collision shaken off. Keep running.', 'no');
   }
 }
 
@@ -3138,11 +3148,11 @@ function gameOver(reason) {
   // Coins earned even on a failed run get banked
   const earned = GAME_STATE.coins;
   addCoinsToWallet(earned);
-  document.getElementById('pause-eyebrow').textContent = 'Koşu Sona Erdi';
+  document.getElementById('pause-eyebrow').textContent = 'Run Ended';
   document.getElementById('pause-title').textContent = 'Oyun Bitti';
   document.getElementById('pause-copy').textContent =
-    (reason || 'Koşu sona erdi.') + ' Doğru kapı sayısı: ' + GAME_STATE.correctTotal +
-    '. Kazanılan para: ' + earned.toLocaleString() + '. Yeniden deneyebilirsin.';
+    (reason || 'The run ended.') + ' Correct gates: ' + GAME_STATE.correctTotal +
+    '. Coins earned: ' + earned.toLocaleString() + '. You can try again.';
   document.getElementById('resume-btn').style.display = 'none';
   showOverlay('pause');
 }
@@ -3151,7 +3161,7 @@ function togglePause() {
   if (GAME_STATE.mode === 'playing') {
     setMode('pause');
     GAME_STATE.pausedFrom = 'playing';
-    document.getElementById('pause-eyebrow').textContent = 'Koşu Duraklatıldı';
+    document.getElementById('pause-eyebrow').textContent = 'Run Paused';
     document.getElementById('pause-title').textContent = 'Nefeslen';
     document.getElementById('resume-btn').style.display = '';
     document.getElementById('pause-copy').textContent =
@@ -3246,7 +3256,7 @@ function updateHUD() {
     const remaining = Math.max(0, Math.ceil((GAME_STATE.powerUntil - performance.now()) / 1000));
     HUD.power.textContent = POWERUPS[GAME_STATE.activePower].label + ' ' + remaining + 's';
   } else {
-    HUD.power.textContent = GAME_STATE.shields > 0 ? 'Kalkanlı' : 'Hazır';
+    HUD.power.textContent = GAME_STATE.shields > 0 ? 'Shielded' : 'Ready';
   }
 }
 
@@ -5058,7 +5068,7 @@ document.getElementById('close-memory-btn').addEventListener('click', () => {
   showOverlay('title');
 });
 document.getElementById('reset-memory-btn').addEventListener('click', () => {
-  if (confirm('Tüm öğrenme geçmişin silinsin mi? Bu işlem geri alınamaz.')) {
+  if (confirm('Erase your entire learning history? This cannot be undone.')) {
     resetKnowledge();
   }
 });
