@@ -709,8 +709,26 @@ h2 {
 }
 .music-btn.muted { color: #6a4a5a; border-color: rgba(106, 74, 90, .35); }
 
+.home-btn {
+  position: absolute;
+  z-index: 23;
+  top: 74px;
+  right: 116px;
+  width: 42px;
+  height: 42px;
+  border-radius: 7px;
+  border: 1px solid rgba(0, 245, 255, .35);
+  background: rgba(8, 14, 28, .82);
+  color: #00f5ff;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(0, 245, 255, .15);
+}
+.home-btn:hover { background: rgba(8, 14, 28, .95); }
+
 @media (max-width: 760px) {
   .music-btn { display: none; }
+  .home-btn { display: none; }
 }
 
 .guide-link {
@@ -1293,10 +1311,12 @@ h2 {
   <button class="guide-link" id="guide-btn" type="button">Guide</button>
   <button class="pause-btn" id="pause-btn" type="button">II</button>
   <button class="music-btn" id="music-btn" type="button" title="Toggle music">🔊</button>
+  <button class="home-btn" id="home-btn" type="button" title="Back to title screen">🏠</button>
   <!-- Compact floating action icons (mobile) -->
   <div class="mobile-actions" id="mobile-actions">
     <button class="mini-btn" id="hud-guide-btn" type="button" aria-label="Guide">📚</button>
     <button class="mini-btn" id="hud-pause-btn" type="button" aria-label="Pause">⏸</button>
+    <button class="mini-btn" id="hud-home-btn" type="button" aria-label="Home">🏠</button>
   </div>
   <audio id="bg-music" src="monume-synthwave-retro-80s-519247.mp3" loop preload="auto"></audio>
 
@@ -2184,6 +2204,16 @@ function closeGuide() {
     return;
   }
   showOverlay(null);
+}
+
+function goHome() {
+  GAME_STATE.mode = 'title';
+  GAME_STATE.gate = null;
+  GAME_STATE.objects = [];
+  UI.prompt.classList.remove('show', 'slowmo');
+  document.body.classList.remove('slowmo-active');
+  document.getElementById('resume-btn').style.display = '';
+  showOverlay('title');
 }
 
 // ---------- Shop module ----------
@@ -5036,6 +5066,8 @@ document.getElementById('start-btn').addEventListener('click', () => {
 document.getElementById('music-btn').addEventListener('click', toggleMusic);
 document.getElementById('chapter-continue').addEventListener('click', startNextChapter);
 document.getElementById('pause-btn').addEventListener('click', togglePause);
+document.getElementById('home-btn').addEventListener('click', goHome);
+document.getElementById('hud-home-btn').addEventListener('click', goHome);
 document.getElementById('resume-btn').addEventListener('click', togglePause);
 document.getElementById('restart-btn').addEventListener('click', () => {
   document.getElementById('resume-btn').style.display = '';
