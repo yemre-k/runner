@@ -2591,7 +2591,10 @@ function escapeHtml(s) {
 
 function setMode(mode) {
   GAME_STATE.mode = mode;
-  if (mode === 'playing') showOverlay(null);
+  if (mode === 'playing') {
+    showOverlay(null);
+    try { playMusic(); } catch (e) {}
+  }
 }
 
 function resetRun() {
@@ -3180,11 +3183,13 @@ function handleCrash(reason) {
 
 function gameOver(reason) {
   setMode('pause');
+  // Stop background music on game over
+  try { if (bgMusic) { bgMusic.pause(); bgMusic.currentTime = 0; } } catch (e) {}
   // Coins earned even on a failed run get banked
   const earned = GAME_STATE.coins;
   addCoinsToWallet(earned);
   document.getElementById('pause-eyebrow').textContent = 'Run Ended';
-  document.getElementById('pause-title').textContent = 'Oyun Bitti';
+  document.getElementById('pause-title').textContent = 'Game Over';
   document.getElementById('pause-copy').textContent =
     (reason || 'The run ended.') + ' Correct gates: ' + GAME_STATE.correctTotal +
     '. Coins earned: ' + earned.toLocaleString() + '. You can try again.';
@@ -3197,7 +3202,7 @@ function togglePause() {
     setMode('pause');
     GAME_STATE.pausedFrom = 'playing';
     document.getElementById('pause-eyebrow').textContent = 'Run Paused';
-    document.getElementById('pause-title').textContent = 'Nefeslen';
+    document.getElementById('pause-title').textContent = 'Catch your breath';
     document.getElementById('resume-btn').style.display = '';
     document.getElementById('pause-copy').textContent =
       currentChapter().title + ': ' + currentChapter().focus;
