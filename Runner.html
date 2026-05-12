@@ -477,10 +477,15 @@ body.slowmo-active::after {
 .title-hero {
   display: block;
   width: 100%;
-  max-width: 360px;
+  max-width: 220px;
   margin: -8px auto 4px;
   border-radius: 10px;
   filter: drop-shadow(0 0 24px rgba(255, 46, 154, .5));
+}
+@media (max-height: 820px) {
+  .title-hero { max-width: 160px; }
+  .title-modal .lead { margin: 8px 0 10px; }
+  .title-modal .concept-grid { margin-bottom: 10px; }
 }
 
 .modal.small { width: min(560px, 100%); }
