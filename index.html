@@ -1472,6 +1472,49 @@ h2 {
 const canvas = document.getElementById('runner-canvas');
 const ctx = canvas.getContext('2d');
 
+/* ───────────────────────────────────────────────────────────────
+ * GPAF — central event log (Supabase backend)
+ * SUPABASE_ANON_KEY is the PUBLIC anon key: safe to ship in the
+ * client. It is protected by Row Level Security (anon may only
+ * INSERT play events; no select/update/delete). NEVER put the
+ * service_role / secret key here.
+ * GAME_ID: paste the exact Game Id from the GPAF Team tool.
+ * ─────────────────────────────────────────────────────────────── */
+const GPAF = {
+  SUPABASE_URL: 'https://njviapxjocuololtgxeb.supabase.co', // public project URL
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qdmlhcHhqb2N1b2xvbHRneGViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MTk5NjksImV4cCI6MjA5NjQ5NTk2OX0.eXsSECKc3TYKA5KkMMI-fvfMNU1DYeLNe40yzJqRpoI', // anon/public key ONLY — never the service key
+  GAME_ID: 'GM-XXXXXXXXXXXX' // I'll paste the exact Game Id from the GPAF Team tool
+};
+
+/* Fire-and-forget insert of ONE GPAF event row. Fails silently —
+ * never throws into gameplay. No-ops until SUPABASE_URL is set.
+ * Not wired into gameplay yet. */
+async function gpafInsert(event) {
+  try {
+    if (!event || !GPAF.SUPABASE_URL || GPAF.SUPABASE_URL.indexOf('YOUR-PROJECT') !== -1) return;
+    const row = {
+      player_pseudo_id: event.player_pseudo_id,
+      display_name: event.display_name ?? null,
+      session_id: event.session_id,
+      game_id: event.game_id ?? GPAF.GAME_ID,
+      event_type: event.event_type,
+      payload: event.payload ?? {}
+    };
+    await fetch(`${GPAF.SUPABASE_URL}/rest/v1/runner_events`, {
+      method: 'POST',
+      headers: {
+        'apikey': GPAF.SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${GPAF.SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(row)
+    });
+  } catch (e) {
+    /* swallow — logging must never affect gameplay */
+  }
+}
+
 const HUD = {
   chapter: document.getElementById('hud-chapter'),
   score: document.getElementById('hud-score'),
