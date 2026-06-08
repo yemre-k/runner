@@ -2022,6 +2022,86 @@ const stars = Array.from({ length: 60 }, () => ({
   speed: .3 + Math.random() * .8,
 }));
 
+// ── Cached static GFX (gradients + asphalt grain) ──────────────
+// Rebuilt only when viewport size or chapter changes. The grain
+// pattern is deterministic (seeded), so it is baked to an offscreen
+// canvas once and blitted each frame instead of re-running ~1,140
+// Math.sin calls + 380 fillRects per frame.
+const PARTICLE_CAP = 160;
+const _gfx = { key: '', sky: null, blend: null, horizonGlow: null, ground: null, sidewalk: null, road: null, grain: null, vignette: null, topShadow: null };
+
+function ensureGfxCache(W, H, ch) {
+  const key = W + 'x' + H + ':' + GAME_STATE.chapter;
+  if (_gfx.key === key) return _gfx;
+  const horizon = H * ROAD.horizon;
+  const cx = W * .5;
+  const roadTop = W * ROAD.topHalf;
+  const roadBottom = W * ROAD.bottomHalf;
+
+  let g = ctx.createLinearGradient(0, 0, 0, H * .6);
+  g.addColorStop(0, ch.skyA); g.addColorStop(1, ch.skyB);
+  _gfx.sky = g;
+
+  g = ctx.createLinearGradient(0, horizon - 30, 0, horizon + 30);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, hexToRgba(ch.road || '#0a0e1a', .9));
+  _gfx.blend = g;
+
+  g = ctx.createRadialGradient(W * .5, horizon, 0, W * .5, horizon, W * .6);
+  g.addColorStop(0, hexToRgba(ch.color, .35)); g.addColorStop(.5, hexToRgba(ch.color, .12)); g.addColorStop(1, 'rgba(0,0,0,0)');
+  _gfx.horizonGlow = g;
+
+  g = ctx.createLinearGradient(0, horizon, 0, H);
+  g.addColorStop(0, hexToRgba(ch.color, .34)); g.addColorStop(1, '#0a0d18');
+  _gfx.ground = g;
+
+  g = ctx.createLinearGradient(0, horizon, 0, H);
+  g.addColorStop(0, '#0c1626'); g.addColorStop(.48, '#0a1322'); g.addColorStop(1, '#070b18');
+  _gfx.sidewalk = g;
+
+  g = ctx.createLinearGradient(0, horizon, 0, H);
+  g.addColorStop(0, '#0a1024'); g.addColorStop(.35, ch.road || '#0a0e22'); g.addColorStop(1, '#05060f');
+  _gfx.road = g;
+
+  g = ctx.createRadialGradient(W * .5, H * .5, H * .2, W * .5, H * .5, H * .82);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(.6, 'rgba(0,0,0,.15)'); g.addColorStop(1, 'rgba(0,0,0,.58)');
+  _gfx.vignette = g;
+
+  g = ctx.createLinearGradient(0, 0, 0, H * .12);
+  g.addColorStop(0, 'rgba(0,0,0,.3)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  _gfx.topShadow = g;
+
+  // Bake asphalt grain once to an offscreen canvas (CSS-px sized).
+  if (!_gfx.grain) _gfx.grain = document.createElement('canvas');
+  const gcv = _gfx.grain;
+  gcv.width = Math.max(1, W); gcv.height = Math.max(1, H);
+  const gx = gcv.getContext('2d');
+  gx.clearRect(0, 0, W, H);
+  gx.save();
+  gx.beginPath();
+  gx.moveTo(cx - roadTop, horizon);
+  gx.lineTo(cx + roadTop, horizon);
+  gx.lineTo(cx + roadBottom, H);
+  gx.lineTo(cx - roadBottom, H);
+  gx.closePath();
+  gx.clip();
+  for (let i = 0; i < 380; i++) {
+    const r1 = seededNoise(i * 12.989 + 4.2);
+    const r2 = seededNoise(i * 78.233 + 9.7);
+    const r3 = seededNoise(i * 31.317 + 2.1);
+    const y = horizon + r1 * (H - horizon);
+    const t = (y - horizon) / (H - horizon);
+    const half = W * (ROAD.topHalf + (ROAD.bottomHalf - ROAD.topHalf) * Math.pow(t, .76));
+    const x = cx - half + r2 * half * 2;
+    const a = .03 + r3 * .055;
+    gx.fillStyle = r3 > .48 ? `rgba(255,255,255,${a})` : `rgba(0,0,0,${a})`;
+    gx.fillRect(x, y, 1.2 + r2 * 1.8, 1);
+  }
+  gx.restore();
+
+  _gfx.key = key;
+  return _gfx;
+}
+
 function spawnParticles(x, y, color, count, spread) {
   for (let i = 0; i < count; i++) {
     particles.push({
@@ -2035,6 +2115,8 @@ function spawnParticles(x, y, color, count, spread) {
       gravity: 60 + Math.random() * 40,
     });
   }
+  // Hard cap to avoid GC/fill spikes from large celebration bursts.
+  if (particles.length > PARTICLE_CAP) particles.splice(0, particles.length - PARTICLE_CAP);
 }
 
 function spawnSpeedLine() {
@@ -3523,11 +3605,9 @@ function draw() {
 }
 
 function drawBackground(W, H, ch) {
-  // Synthwave sky gradient (fallback + tint)
-  const sky = ctx.createLinearGradient(0, 0, 0, H * .6);
-  sky.addColorStop(0, ch.skyA);
-  sky.addColorStop(1, ch.skyB);
-  ctx.fillStyle = sky;
+  const gfx = ensureGfxCache(W, H, ch);
+  // Synthwave sky gradient (fallback + tint) — cached
+  ctx.fillStyle = gfx.sky;
   ctx.fillRect(0, 0, W, H);
 
   // Synthwave background image (sunset + grid + mountains)
@@ -3549,11 +3629,8 @@ function drawBackground(W, H, ch) {
     ctx.drawImage(img, dx, dy, drawW, drawH);
     ctx.restore();
 
-    // Smooth blend zone at horizon
-    const blend = ctx.createLinearGradient(0, horizon - 30, 0, horizon + 30);
-    blend.addColorStop(0, 'rgba(0,0,0,0)');
-    blend.addColorStop(1, hexToRgba(ch.road || '#0a0e1a', .9));
-    ctx.fillStyle = blend;
+    // Smooth blend zone at horizon — cached
+    ctx.fillStyle = gfx.blend;
     ctx.fillRect(0, horizon - 30, W, 60);
   }
 
@@ -3581,13 +3658,9 @@ function drawBackground(W, H, ch) {
     ctx.restore();
   }
 
-  // Glow at horizon
+  // Glow at horizon — cached
   const horizon = H * ROAD.horizon;
-  const horizonGlow = ctx.createRadialGradient(W * .5, horizon, 0, W * .5, horizon, W * .6);
-  horizonGlow.addColorStop(0, hexToRgba(ch.color, .35));
-  horizonGlow.addColorStop(.5, hexToRgba(ch.color, .12));
-  horizonGlow.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = horizonGlow;
+  ctx.fillStyle = gfx.horizonGlow;
   ctx.fillRect(0, horizon - W * .15, W, W * .3);
 }
 
@@ -3598,20 +3671,14 @@ function drawRoad(W, H, ch) {
   const roadBottom = W * ROAD.bottomHalf;
   const cx = W * .5;
 
-  const ground = ctx.createLinearGradient(0, horizon, 0, H);
-  ground.addColorStop(0, hexToRgba(ch.color, .34));
-  ground.addColorStop(1, '#0a0d18');
-  ctx.fillStyle = ground;
+  const gfx = ensureGfxCache(W, H, ch);
+  ctx.fillStyle = gfx.ground;
   ctx.fillRect(0, horizon, W, H - horizon);
 
   // Synthwave neon grid on the side ground (under sidewalks too)
   drawSynthwaveGrid(W, H, horizon, ch);
 
-  const sidewalk = ctx.createLinearGradient(0, horizon, 0, H);
-  sidewalk.addColorStop(0, '#0c1626');
-  sidewalk.addColorStop(.48, '#0a1322');
-  sidewalk.addColorStop(1, '#070b18');
-  ctx.fillStyle = sidewalk;
+  ctx.fillStyle = gfx.sidewalk;
   ctx.beginPath();
   ctx.moveTo(0, horizon);
   ctx.lineTo(cx - roadTop - W * .025, horizon);
@@ -3641,11 +3708,7 @@ function drawRoad(W, H, ch) {
   ctx.stroke();
   ctx.restore();
 
-  const road = ctx.createLinearGradient(0, horizon, 0, H);
-  road.addColorStop(0, '#0a1024');
-  road.addColorStop(.35, ch.road || '#0a0e22');
-  road.addColorStop(1, '#05060f');
-  ctx.fillStyle = road;
+  ctx.fillStyle = gfx.road;
   ctx.beginPath();
   ctx.moveTo(cx - roadTop, horizon);
   ctx.lineTo(cx + roadTop, horizon);
@@ -3654,28 +3717,9 @@ function drawRoad(W, H, ch) {
   ctx.closePath();
   ctx.fill();
 
-  // Asphalt grain: subtle speckles, denser near the camera.
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(cx - roadTop, horizon);
-  ctx.lineTo(cx + roadTop, horizon);
-  ctx.lineTo(cx + roadBottom, H);
-  ctx.lineTo(cx - roadBottom, H);
-  ctx.closePath();
-  ctx.clip();
-  for (let i = 0; i < 380; i++) {
-    const r1 = seededNoise(i * 12.989 + 4.2);
-    const r2 = seededNoise(i * 78.233 + 9.7);
-    const r3 = seededNoise(i * 31.317 + 2.1);
-    const y = horizon + r1 * (H - horizon);
-    const t = (y - horizon) / (H - horizon);
-    const half = W * (ROAD.topHalf + (ROAD.bottomHalf - ROAD.topHalf) * Math.pow(t, .76));
-    const x = cx - half + r2 * half * 2;
-    const a = .03 + r3 * .055;
-    ctx.fillStyle = r3 > .48 ? `rgba(255,255,255,${a})` : `rgba(0,0,0,${a})`;
-    ctx.fillRect(x, y, 1.2 + r2 * 1.8, 1);
-  }
-  ctx.restore();
+  // Asphalt grain: pre-baked static speckle layer, blitted (was a
+  // 380-iteration seeded loop every frame — now cached offscreen).
+  if (gfx.grain) ctx.drawImage(gfx.grain, 0, 0, W, H);
 
   // Road edge lines — neon cyan, glowing
   ctx.save();
@@ -3708,6 +3752,13 @@ function roadPoint(frac, t) {
 function drawLaneMarkers(W, H) {
   const laneFracs = [-1 / 3, 1 / 3];
   const dashScroll = (GAME_STATE.distance * .00042) % .12;
+  // Hoist constant glow/stroke state out of the inner loop — toggling
+  // shadowBlur per dash (~18×/frame) is one of the priciest canvas ops.
+  ctx.save();
+  ctx.shadowColor = CYBER_COLORS.cyan;
+  ctx.shadowBlur = 11;
+  ctx.strokeStyle = hexToRgba(CYBER_COLORS.cyan, .85);
+  ctx.lineCap = 'round';
   for (const frac of laneFracs) {
     for (let t = .04 + dashScroll; t < 1.08; t += .12) {
       const t1 = Math.max(.02, t);
@@ -3715,18 +3766,14 @@ function drawLaneMarkers(W, H) {
       if (t1 >= .99 || t2 <= .04) continue;
       const a = roadPoint(frac, t1);
       const b = roadPoint(frac, t2);
-      ctx.shadowColor = CYBER_COLORS.cyan;
-      ctx.shadowBlur = 8 + t2 * 6;
-      ctx.strokeStyle = hexToRgba(CYBER_COLORS.cyan, .85);
       ctx.lineWidth = Math.max(2, 1 + t2 * 5);
-      ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(b.x, b.y);
       ctx.stroke();
-      ctx.shadowBlur = 0;
     }
   }
+  ctx.restore();
   ctx.lineCap = 'butt';
 }
 
@@ -4880,19 +4927,13 @@ function applyPowerTint(scale) {
 }
 
 function drawForeground(W, H) {
-  // Cinematic vignette
-  const vignette = ctx.createRadialGradient(W * .5, H * .5, H * .2, W * .5, H * .5, H * .82);
-  vignette.addColorStop(0, 'rgba(0,0,0,0)');
-  vignette.addColorStop(.6, 'rgba(0,0,0,.15)');
-  vignette.addColorStop(1, 'rgba(0,0,0,.58)');
-  ctx.fillStyle = vignette;
+  const gfx = ensureGfxCache(W, H, currentChapter() || RUNNER_CHAPTERS[0]);
+  // Cinematic vignette — cached
+  ctx.fillStyle = gfx.vignette;
   ctx.fillRect(0, 0, W, H);
 
-  // Top edge shadow
-  const topShadow = ctx.createLinearGradient(0, 0, 0, H * .12);
-  topShadow.addColorStop(0, 'rgba(0,0,0,.3)');
-  topShadow.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = topShadow;
+  // Top edge shadow — cached
+  ctx.fillStyle = gfx.topShadow;
   ctx.fillRect(0, 0, W, H * .12);
 
   // Progress bar
@@ -4988,6 +5029,7 @@ function hexToRgba(hex, alpha) {
   return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
 }
 
+let _lastDrawAt = 0;
 function loop(now) {
   if (resizeQueued) {
     resizeQueued = false;
@@ -4995,11 +5037,18 @@ function loop(now) {
   }
   const dt = Math.min(40, now - GAME_STATE.lastTime || 16);
   GAME_STATE.lastTime = now;
-  if (GAME_STATE.mode === 'playing') {
+  const playing = GAME_STATE.mode === 'playing';
+  if (playing) {
     update(dt, now);
   }
-  draw();
-  updateHUD();
+  // While playing, render every frame. On menus/pause/final the scene
+  // sits behind a blurred overlay, so throttle it to ~20fps to free the
+  // CPU/GPU instead of compositing the full synthwave scene at 60fps.
+  if (playing || now - _lastDrawAt >= 50) {
+    draw();
+    updateHUD();
+    _lastDrawAt = now;
+  }
   requestAnimationFrame(loop);
 }
 
