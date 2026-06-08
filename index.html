@@ -1071,6 +1071,79 @@ h2 {
   text-shadow: 0 0 10px rgba(0, 245, 255, .35);
 }
 
+.player-id {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px auto 16px;
+  max-width: 420px;
+  text-align: left;
+}
+
+.player-id-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.player-id-label {
+  font-family: "Orbitron", sans-serif;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: #9fb6c4;
+}
+
+.player-id-label .req { color: #ff4d9d; }
+.player-id-label .opt { color: #6f8597; letter-spacing: .5px; text-transform: none; }
+
+.player-id input {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 245, 255, .3);
+  background: rgba(6, 12, 22, .72);
+  color: #eafdff;
+  font-family: "Orbitron", sans-serif;
+  font-size: 15px;
+  letter-spacing: .8px;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.player-id input::placeholder { color: #5d7282; letter-spacing: .4px; }
+
+.player-id input:focus {
+  border-color: rgba(0, 245, 255, .8);
+  box-shadow: 0 0 0 3px rgba(0, 245, 255, .14);
+}
+
+.player-id input.invalid {
+  border-color: rgba(255, 77, 157, .85);
+  box-shadow: 0 0 0 3px rgba(255, 77, 157, .14);
+}
+
+.player-id-help {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #8fa6b6;
+}
+
+.player-id-error {
+  margin: 0;
+  min-height: 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ff6fae;
+}
+
+.btn.primary:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+  filter: grayscale(.4);
+}
+
 .shop-wallet {
   margin: 8px 0 18px;
   font-family: "Orbitron", sans-serif;
@@ -1353,8 +1426,23 @@ h2 {
         <div class="concept-tile"><strong>Chapter 3</strong><span>System boundary and mixed modeling. Combine every concept at full speed.</span></div>
       </div>
       <div class="title-wallet" id="title-wallet" aria-live="polite"></div>
+      <div class="player-id">
+        <label class="player-id-field">
+          <span class="player-id-label">Player code <span class="req">*</span></span>
+          <input id="player-code" type="text" inputmode="text" autocomplete="off"
+                 autocapitalize="off" spellcheck="false" maxlength="40"
+                 placeholder="e.g. falcon-42">
+        </label>
+        <label class="player-id-field">
+          <span class="player-id-label">Display name <span class="opt">(optional)</span></span>
+          <input id="player-name" type="text" autocomplete="off" maxlength="24"
+                 placeholder="shown on the leaderboard">
+        </label>
+        <p class="player-id-help">Use this same code in the GPAF Player tool — it links your play to the leaderboard. Not your real name.</p>
+        <p class="player-id-error" id="player-code-error" aria-live="polite"></p>
+      </div>
       <div class="actions">
-        <button class="btn primary" id="start-btn" type="button">Start Run</button>
+        <button class="btn primary" id="start-btn" type="button" disabled>Start Run</button>
         <button class="btn" id="open-shop-btn" type="button">Shop</button>
         <button class="btn" id="open-memory-btn" type="button">Knowledge Memory</button>
         <button class="btn" id="open-guide-btn" type="button">Concept Guide</button>
@@ -1513,6 +1601,56 @@ async function gpafInsert(event) {
   } catch (e) {
     /* swallow — logging must never affect gameplay */
   }
+}
+
+/* ───────────────────────────────────────────────────────────────
+ * Pseudonymous player identity (privacy-first)
+ * We store ONLY a player code (pseudonym, matches the GPAF Player
+ * tool) and an optional display name — never a real name/number.
+ * Persisted in localStorage so returning players don't retype.
+ * ─────────────────────────────────────────────────────────────── */
+const PLAYER_STORAGE_KEY = 'gpaf_runner_player';
+
+// Valid code: non-empty after trim, no spaces, no '@' (grading tool
+// flags those as raw identity).
+function isValidPlayerCode(raw) {
+  const code = (raw || '').trim();
+  if (!code) return false;
+  if (/\s/.test(code)) return false;
+  if (code.indexOf('@') !== -1) return false;
+  return true;
+}
+
+function playerCodeError(raw) {
+  const code = (raw || '').trim();
+  if (!code) return 'Enter a player code to start.';
+  if (/\s/.test(code)) return 'No spaces allowed in the player code.';
+  if (code.indexOf('@') !== -1) return "No '@' allowed — use a pseudonym, not an email.";
+  return '';
+}
+
+function loadStoredPlayer() {
+  try {
+    const raw = localStorage.getItem(PLAYER_STORAGE_KEY);
+    if (!raw) return { code: '', displayName: '' };
+    const obj = JSON.parse(raw);
+    return { code: (obj.code || '').trim(), displayName: (obj.displayName || '').trim() };
+  } catch (e) {
+    return { code: '', displayName: '' };
+  }
+}
+
+function savePlayer(code, displayName) {
+  try {
+    localStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify({ code, displayName }));
+  } catch (e) { /* storage may be unavailable — ignore */ }
+}
+
+function newSessionId(code) {
+  try {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  } catch (e) { /* fall through */ }
+  return `${code || 'anon'}-${Date.now()}`;
 }
 
 const HUD = {
@@ -2281,6 +2419,8 @@ const GAME_STATE = {
   correctTotal: 0,
   sentencesCompleted: 0,
   wrongAnswers: [],
+  player: { code: '', displayName: '' },
+  sessionId: null,
 };
 
 let toastTimer = 0;
@@ -2770,6 +2910,8 @@ function resetRun() {
     lastGroundedAt: performance.now(),
     jumpBufferedAt: 0,
   });
+  // Fresh session id for every run start (initial, restart, play-again).
+  GAME_STATE.sessionId = newSessionId(GAME_STATE.player && GAME_STATE.player.code);
   UI.prompt.classList.remove('show', 'slowmo');
   document.body.classList.remove('slowmo-active');
   // Apply shop consumables for this run (extra lives / starting shields)
@@ -5156,7 +5298,49 @@ canvas.addEventListener('touchcancel', () => {
   touchStart = null;
 }, { passive: true });
 
+/* ── Player-identity wiring (title screen) ───────────────────── */
+const playerCodeInput = document.getElementById('player-code');
+const playerNameInput = document.getElementById('player-name');
+const playerCodeErrorEl = document.getElementById('player-code-error');
+const startBtn = document.getElementById('start-btn');
+
+function refreshStartGate(showError) {
+  const raw = playerCodeInput ? playerCodeInput.value : '';
+  const valid = isValidPlayerCode(raw);
+  if (startBtn) startBtn.disabled = !valid;
+  if (playerCodeInput) playerCodeInput.classList.toggle('invalid', showError && !valid);
+  if (playerCodeErrorEl) playerCodeErrorEl.textContent = showError ? playerCodeError(raw) : '';
+  return valid;
+}
+
+// Pre-fill from localStorage so returning players don't retype.
+(function initPlayerFields() {
+  const stored = loadStoredPlayer();
+  GAME_STATE.player = { code: stored.code, displayName: stored.displayName };
+  if (playerCodeInput) playerCodeInput.value = stored.code;
+  if (playerNameInput) playerNameInput.value = stored.displayName;
+  refreshStartGate(false);
+})();
+
+if (playerCodeInput) {
+  playerCodeInput.addEventListener('input', () => refreshStartGate(true));
+  playerCodeInput.addEventListener('blur', () => refreshStartGate(true));
+}
+
+function commitPlayerIdentity() {
+  const code = (playerCodeInput ? playerCodeInput.value : '').trim();
+  const displayName = (playerNameInput ? playerNameInput.value : '').trim();
+  GAME_STATE.player = { code, displayName };
+  savePlayer(code, displayName);
+  // sessionId is generated in resetRun() so restart/play-again also refresh it.
+}
+
 document.getElementById('start-btn').addEventListener('click', () => {
+  if (!refreshStartGate(true)) {
+    if (playerCodeInput) playerCodeInput.focus();
+    return;
+  }
+  commitPlayerIdentity();
   try { playMusic(); } catch (e) {}
   try { resetRun(); } catch (e) { console.error('start failed:', e); }
 });
