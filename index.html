@@ -1576,10 +1576,13 @@ const GPAF = {
 
 /* Fire-and-forget insert of ONE GPAF event row. Fails silently —
  * never throws into gameplay. No-ops until SUPABASE_URL is set.
- * Not wired into gameplay yet. */
-async function gpafInsert(event) {
+ * opts.keepalive=true lets the request survive tab close (used for
+ * session_end). We use fetch+keepalive, NOT sendBeacon, because
+ * beacon can't attach the apikey/Authorization headers. */
+async function gpafInsert(event, opts) {
   try {
     if (!event || !GPAF.SUPABASE_URL || GPAF.SUPABASE_URL.indexOf('YOUR-PROJECT') !== -1) return;
+    if (!event.player_pseudo_id || !event.session_id) return; // need identity + session
     const row = {
       player_pseudo_id: event.player_pseudo_id,
       display_name: event.display_name ?? null,
@@ -1588,7 +1591,7 @@ async function gpafInsert(event) {
       event_type: event.event_type,
       payload: event.payload ?? {}
     };
-    await fetch(`${GPAF.SUPABASE_URL}/rest/v1/runner_events`, {
+    const init = {
       method: 'POST',
       headers: {
         'apikey': GPAF.SUPABASE_ANON_KEY,
@@ -1597,10 +1600,68 @@ async function gpafInsert(event) {
         'Prefer': 'return=minimal'
       },
       body: JSON.stringify(row)
-    });
+    };
+    if (opts && opts.keepalive) init.keepalive = true;
+    await fetch(`${GPAF.SUPABASE_URL}/rest/v1/runner_events`, init);
   } catch (e) {
     /* swallow — logging must never affect gameplay */
   }
+}
+
+/* ── GPAF gameplay event emitters ────────────────────────────────
+ * Map GAME_STATE.player + sessionId → row columns. Guard against
+ * double session_start/session_end. score_update is throttled to
+ * ~1/sec but tied to real score-change moments (non-uniform timing).
+ * ──────────────────────────────────────────────────────────────── */
+let _gpafStartedSession = null; // sessionId for which session_start fired
+let _gpafEndedSession = null;   // sessionId for which session_end fired
+let _gpafScoreLastSentAt = 0;   // perf-clock ms of last score_update
+let _gpafScoreLastValue = null; // last score value sent
+
+function gpafEmit(eventType, payload, opts) {
+  const p = GAME_STATE.player || {};
+  gpafInsert({
+    player_pseudo_id: p.code,
+    display_name: p.displayName,
+    session_id: GAME_STATE.sessionId,
+    game_id: GPAF.GAME_ID,
+    event_type: eventType,
+    payload: payload || {}
+  }, opts);
+}
+
+function gpafSessionStart() {
+  const sid = GAME_STATE.sessionId;
+  if (!sid || _gpafStartedSession === sid) return; // never double-send
+  _gpafStartedSession = sid;
+  _gpafEndedSession = null;        // this fresh session hasn't ended
+  _gpafScoreLastSentAt = 0;
+  _gpafScoreLastValue = null;
+  gpafEmit('session_start', {});
+}
+
+function gpafScoreUpdate() {
+  const sid = GAME_STATE.sessionId;
+  if (!sid || GAME_STATE.mode !== 'playing') return;
+  const score = Number(GAME_STATE.score);
+  if (score === _gpafScoreLastValue) return;          // no real change
+  const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  if (now - _gpafScoreLastSentAt < 1000) return;      // ~1/sec cap
+  _gpafScoreLastSentAt = now;
+  _gpafScoreLastValue = score;
+  gpafEmit('score_update', { score });
+}
+
+function gpafLevelComplete(level) {
+  if (!GAME_STATE.sessionId) return;
+  gpafEmit('level_complete', { level: Number(level) });
+}
+
+function gpafSessionEnd(completed) {
+  const sid = GAME_STATE.sessionId;
+  if (!sid || _gpafEndedSession === sid) return;      // never double-send
+  _gpafEndedSession = sid;
+  gpafEmit('session_end', { completed: !!completed, score: Number(GAME_STATE.score) }, { keepalive: true });
 }
 
 /* ───────────────────────────────────────────────────────────────
@@ -2912,6 +2973,7 @@ function resetRun() {
   });
   // Fresh session id for every run start (initial, restart, play-again).
   GAME_STATE.sessionId = newSessionId(GAME_STATE.player && GAME_STATE.player.code);
+  gpafSessionStart(); // one session_start per fresh session
   UI.prompt.classList.remove('show', 'slowmo');
   document.body.classList.remove('slowmo-active');
   // Apply shop consumables for this run (extra lives / starting shields)
@@ -3192,6 +3254,7 @@ function applyConceptFeedback(correct, question) {
     GAME_STATE.bestStreak = Math.max(GAME_STATE.bestStreak, GAME_STATE.streak);
     const streakBonus = Math.min(300, GAME_STATE.streak * 35);
     GAME_STATE.score += 750 + streakBonus;
+    gpafScoreUpdate();
     GAME_STATE.xp += 45 + GAME_STATE.chapter * 10;
     GAME_STATE.coins += 8 + GAME_STATE.chapter * 2;
     sfx('correct');
@@ -3236,6 +3299,7 @@ function resolveWordPickup(obj) {
   GAME_STATE.sentence.collected.push(word);
   GAME_STATE.sentence.index += 1;
   GAME_STATE.score += 180 + GAME_STATE.sentence.index * 14;
+  gpafScoreUpdate();
   GAME_STATE.xp += 12;
   GAME_STATE.coins += 3;
   showToast('Word caught: ' + word, 'ok');
@@ -3271,6 +3335,7 @@ function completeSentence() {
   const completed = GAME_STATE.sentence.data;
   GAME_STATE.sentencesCompleted += 1;
   GAME_STATE.score += 900;
+  gpafScoreUpdate();
   GAME_STATE.xp += 80;
   GAME_STATE.coins += 15;
   updateSentencePanel();
@@ -3287,6 +3352,8 @@ function completeSentence() {
 function completeChapter() {
   if (GAME_STATE.mode !== 'playing') return;
   const ch = currentChapter();
+  // GPAF: one level_complete per chapter cleared (1-based level number).
+  gpafLevelComplete(GAME_STATE.chapter + 1);
   // Celebration: confetti burst from player + ascending arpeggio
   const cx = GAME_STATE.width * .5 + GAME_STATE.laneVisual * 80;
   const cy = GAME_STATE.height * .68;
@@ -3335,6 +3402,7 @@ function startNextChapter() {
 
 function finishRun() {
   setMode('final');
+  gpafSessionEnd(true); // all chapters finished → completed
   UI.prompt.classList.remove('show', 'slowmo');
   document.body.classList.remove('slowmo-active');
   // Transfer coins earned this run to the persistent shop wallet
@@ -3450,6 +3518,7 @@ function handleCrash(reason) {
 
 function gameOver(reason) {
   setMode('pause');
+  gpafSessionEnd(false); // run ended early → not completed
   // Stop background music on game over
   try { if (bgMusic) { bgMusic.pause(); bgMusic.currentTime = 0; } } catch (e) {}
   // Coins earned even on a failed run get banked
@@ -3704,6 +3773,7 @@ function checkObjectCollision(obj) {
     obj.taken = true;
     GAME_STATE.coins += 1;
     GAME_STATE.score += 35;
+    gpafScoreUpdate();
     const cp = perspective(obj.z);
     spawnParticles(laneToX(obj.lane, obj.z), cp.y, '#ffc85a', 6, 40);
     sfx('coin');
