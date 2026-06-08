@@ -31,6 +31,20 @@ node tools/export_logs.mjs
 It prints the number of events written and creates `runner_logs.jsonl`
 in the current directory.
 
+## Validate the export
+
+After exporting, sanity-check the file before submitting:
+
+```bash
+GAME_ID=GM-XXXXXXXXXXXX node tools/validate_logs.mjs runner_logs.jsonl
+```
+
+It reports pass/fail for each GPAF check (valid JSON per line, exactly
+the 6 fields, `gameId` matches `GAME_ID`, `score_update` carries a
+numeric `payload.score`, and every session has at least one
+`level_complete` or `session_end`). Exit code is non-zero on any
+failure.
+
 ## ⚠️ NEVER commit the service key
 
 **The `SUPABASE_SERVICE_KEY` (service_role) bypasses Row Level Security —
