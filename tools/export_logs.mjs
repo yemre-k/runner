@@ -20,16 +20,41 @@ if (!url || !key || !gameId) {
   process.exit(1);
 }
 
+// Order by ts asc with id as a stable tiebreaker so pagination is
+// consistent across pages (ts can have ties).
 const q = `${url}/rest/v1/runner_events?game_id=eq.${encodeURIComponent(gameId)}` +
-  `&select=ts,player_pseudo_id,session_id,game_id,event_type,payload&order=ts.asc`;
+  `&select=ts,player_pseudo_id,session_id,game_id,event_type,payload&order=ts.asc,id.asc`;
 
-const res = await fetch(q, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
-if (!res.ok) {
-  console.error('Fetch failed', res.status, await res.text());
-  process.exit(1);
+// Supabase/PostgREST caps a single response (default 1000 rows), so we
+// page through with Range headers until every row is fetched.
+const PAGE = 1000;
+const rows = [];
+let from = 0;
+let total = Infinity;
+while (from < total) {
+  const res = await fetch(q, {
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      'Range-Unit': 'items',
+      Range: `${from}-${from + PAGE - 1}`,
+      Prefer: 'count=exact'
+    }
+  });
+  if (!res.ok && res.status !== 206) {
+    console.error('Fetch failed', res.status, await res.text());
+    process.exit(1);
+  }
+  const batch = await res.json();
+  rows.push(...batch);
+  const cr = res.headers.get('content-range'); // e.g. "0-999/1623"
+  if (cr && cr.includes('/')) {
+    const t = parseInt(cr.split('/')[1], 10);
+    if (!Number.isNaN(t)) total = t;
+  }
+  if (batch.length === 0) break;
+  from += batch.length;
 }
-
-const rows = await res.json();
 
 const lines = rows.map(r => JSON.stringify({
   ts: new Date(r.ts).toISOString(),
